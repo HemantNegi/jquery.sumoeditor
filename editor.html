@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Easy editor - Insert image url example</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- easy editor stylesheet -->
+    <link rel="stylesheet" href="easyeditor.css">
+    <style type="text/css">
+        #editor {
+            white-space: pre-wrap;       /* css-3 */
+            white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+            white-space: -pre-wrap;      /* Opera 4-6 */
+            white-space: -o-pre-wrap;    /* Opera 7 */
+            word-wrap: break-word;       /* Internet Explorer 5.5+ */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Easy editor <span>Insert image url example</span></h1>
+        <p class="p">Sample image url - <a href="http://placehold.it/500x300">http://placehold.it/500x300</a></p>
+
+
+        <!-- easy editor wil apply in this div -->
+        <div id="editor" placeholder="Type here ... ">
+        </div>
+
+    <!-- dependancy js -->
+    <script src="jquery-1.10.2.min.js"></script>
+    <!-- easy editor core js -->
+    <script src="jquery.easyeditor.js"></script>
+
+    <script>
+
+        jQuery(document).ready(function($) {
+            EasyEditor.prototype.imageurl = function(){
+                var _this = this;
+                var settings = {
+                    buttonIdentifier: 'insert-image-url',
+                    buttonHtml: 'Insert image url',
+                    clickHandler: function(){
+                        var link = prompt('Insert direct image path', '');
+
+                        if(link.length > 0) {
+                            var figure = document.createElement('figure');
+                            $(figure).html('<img src="'+ link +'" alt="">');
+                            _this.insertAtCaret(figure);
+                        }
+                        else {
+                            alert('Invalid URL!');
+                        }
+
+                    }
+                };
+
+                _this.injectButton(settings);
+            };
+            new EasyEditor('#editor', {
+                buttons: ['bold', 'italic', 'link', 'list', 'quote', 'h2', 'h3', 'h4', 'imageurl']
+            });
+        });
+    </script>
+
+</body>
+</html>
