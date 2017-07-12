@@ -128,7 +128,7 @@
             // handle removal of div elements.
             $(O.elem).find('div').each(function(){
                 var c = $(this).contents().unwrap('div');
-	            console.log('div removed', c);
+	            console.log('DOM observer: div removed', c);
             });
 
             // handle case when editor is empty.
@@ -136,7 +136,7 @@
             if(!$(O.elem).children(':not(br)').length){
                 $('br', O.elem).remove();
                 document.execCommand('insertHTML', false, '<p><br/></p>');
-                console.log('editor empty p inserted', c);
+                console.log('DOM observer: editor empty: p inserted');
             }
 
             /*
@@ -154,8 +154,19 @@
 
         });
 
+//        $(O.elem).on('blur', function(){
+//            var n = O.getCursorPos($(O.elem));
+//            console.log('Editor lost focus at: ', n);
+//        });
+
         $(O.elem).keydown(function(e) {
             if(e.keyCode === 8 ){ // backspace,
+
+                var node = O.getNode().parentsUntil(O.elem).andSelf().first();
+                var pos = O.getCursorPos(node);
+                console.log('backspace pressed - cursor position is: ', pos, '  Node: ', node.prop('tagName'));
+
+
                 // prevent deletion of last space.
 //                if ($('p',O.elem).length===1 && $('p',O.elem).text().trim()==="" && !$('p :not(br)',O.elem).length){
 //                    e.preventDefault();
@@ -178,7 +189,7 @@
 //                     return false;
 //                 }
             }
-           if(e.keyCode === 13 && O.isSelectionInsideElement('li') === false) {
+           else if(e.keyCode === 13 && O.isSelectionInsideElement('li') === false) {
 
                 if(e.shiftKey === true) {
 //                    document.execCommand('insertHTML', false, '<br>');
@@ -205,10 +216,8 @@
                         cur.after(elem);
                    }
 
-//                   var l_content = getContent();
                    if (l_content != ""){
                         elem.html(l_content);
-//                   O.setCursorAtBeginning(elem);
                    }
                    O.setCursorAtPos(elem, 0);
                    return false;
@@ -234,7 +243,12 @@
     };
 
     EasyEditor.prototype.getNode = function(){
-        return $(window.getSelection().anchorNode);
+        var n = $(window.getSelection().anchorNode);
+        console.log('getNode returns: ', n.prop('tagName'), '  Node type: ', n[0].nodeType)
+        if (n.prop('tagName') === 'DIV'){
+            //debugger;
+        }
+        return n
     }
 
     EasyEditor.prototype.isSelectionInsideElement = function(tagName) {
@@ -310,14 +324,14 @@
 
         // bind click event
         if(typeof settings.clickHandler === 'function') {
-            $(self.elem).closest(self.containerClass).delegate('.toolbar-'+ settings.buttonIdentifier, 'click', function(event){
+            $(self.elem).closest(self.containerClass).delegate('.toolbar-'+ settings.buttonIdentifier, 'mousedown', function(event){
                 if(typeof settings.hasChild !== undefined && settings.hasChild === true) {
                     event.stopPropagation();
                 }
                 else {
                     event.preventDefault();
                 }
-                self.elem.focus();
+//                self.elem.focus();
                 settings.clickHandler.call(this, this);
                 //$(self.elem).trigger('keyup');
             });
@@ -919,6 +933,7 @@
                     n.replaceWith(elem.append(n.contents()));
                 }
                 self.setCursorAtPos(elem, pos);
+//                elem.focus();
             }
         };
 
@@ -1072,11 +1087,11 @@
                 selection.addRange(range);
             }
         }
-        E.focus();
+//        E.focus();
     };
     EasyEditor.prototype.getCursorPos = function (parent) {
         var selection = window.getSelection(),
-            charCount = -1,
+            charCount = 0,
             node;
 
         if (selection.focusNode) {
