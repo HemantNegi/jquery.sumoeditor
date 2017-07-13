@@ -1,6 +1,26 @@
 (function($, document, window){
     'use strict';
 
+/*
+{
+
+base: {
+        ... all core functions go here.
+        ... these functions will define the usability(compatibility) of this editor.
+    }
+
+core: {
+        ... these functions controls the editing behavior different elements.
+
+    }
+
+utils: {
+        ... these functions are
+    }
+
+}
+*/
+
     function EasyEditor( element, options ){
         this.elem = element;
         options = options || {};
@@ -28,6 +48,20 @@
         this.handleKeypress();
         this.handleResizeImage();
         this.utils();
+
+        var self = this;
+        this.currentElement = $('#editor');
+        this.cursorPos = 0;
+        // store the focus element.
+        this.focusHistory = $('#editor');
+        $('#editor').parent().children('.easyeditor-toolbar').on('mousedown', 'button', function(event){
+            if($.contains(self.elem, document.activeElement)){
+                self.focusHistory = $(document.activeElement);
+           }
+           // we only need to stop this event, rest will be fine.
+           event.preventDefault();
+           return false;
+        });
 
         if(this.onLoaded !== null) {
             this.onLoaded.call(this);
@@ -76,6 +110,7 @@
          if(!$('p',self.elem).length && $(self.elem).text().trim()===""){
              $(self.elem).html('<p><br /></p>');
          }
+         $(self.elem).attr('tab-index', '1')
 
         this.$wrapperElem = $(self.elem).parent();
 
@@ -153,13 +188,17 @@
             */
 
         });
-
-//        $(O.elem).on('blur', function(){
-//            var n = O.getCursorPos($(O.elem));
-//            console.log('Editor lost focus at: ', n);
-//        });
+        //focusout
+        $(O.elem).on('keyup click', function(evt){
+            var node = O.getNode().parentsUntil(O.elem).andSelf().first();
+            var n = O.getCursorPos(node);
+            O.currentElement = node;
+            O.cursorPos = n;
+            console.log('pos: ', n, 'node: ', node);
+        });
 
         $(O.elem).keydown(function(e) {
+
             if(e.keyCode === 8 ){ // backspace,
 
                 var node = O.getNode().parentsUntil(O.elem).andSelf().first();
@@ -189,7 +228,7 @@
 //                     return false;
 //                 }
             }
-           else if(e.keyCode === 13 && O.isSelectionInsideElement('li') === false) {
+            else if(e.keyCode === 13 && O.isSelectionInsideElement('li') === false) {
 
                 if(e.shiftKey === true) {
 //                    document.execCommand('insertHTML', false, '<br>');
@@ -243,12 +282,16 @@
     };
 
     EasyEditor.prototype.getNode = function(){
-        var n = $(window.getSelection().anchorNode);
-        console.log('getNode returns: ', n.prop('tagName'), '  Node type: ', n[0].nodeType)
-        if (n.prop('tagName') === 'DIV'){
+        var node = window.getSelection().anchorNode;
+//        console.log('getNode returns: ', node.tagName, '  Node type: ', node.nodeType)
+        if (node.tagName === 'DIV'){
             //debugger;
         }
-        return n
+        if(!$.contains(this.elem, node)){
+            console.log('getNode Selection is outside the editor! Last node returned.');
+            return $('#editor').children().last();
+        }
+        return $(node)
     }
 
     EasyEditor.prototype.isSelectionInsideElement = function(tagName) {
@@ -324,16 +367,26 @@
 
         // bind click event
         if(typeof settings.clickHandler === 'function') {
-            $(self.elem).closest(self.containerClass).delegate('.toolbar-'+ settings.buttonIdentifier, 'mousedown', function(event){
+            $(self.elem).closest(self.containerClass).delegate('.toolbar-'+ settings.buttonIdentifier, 'click', function(event){
                 if(typeof settings.hasChild !== undefined && settings.hasChild === true) {
                     event.stopPropagation();
                 }
                 else {
                     event.preventDefault();
                 }
-//                self.elem.focus();
+
+                console.log('element pos: ', self.currentElement, self.cursorPos)
+                self.setCursorAtPos(self.currentElement, self.cursorPos);
+                self.focusHistory.focus();
+
                 settings.clickHandler.call(this, this);
-                //$(self.elem).trigger('keyup');
+
+                if (settings.blockName){
+                    self.currentElement = self.addRemoveBlock(self, settings.blockName);
+                }
+
+                // set currently created element to currentElement.
+                console.log('=====setting currentElement to : ', self.currentElement)
             });
         }
     };
@@ -906,34 +959,12 @@
     EasyEditor.prototype.quote = function(){
         var self = this;
         var settings = {
-            buttonIdentifier: 'quote',
-            buttonHtml: 'Quote',
+            buttonIdentifier: 'quote',  // selector
+            buttonHtml: 'Quote',        // caption value
+            blockName: 'blockquote',
             clickHandler: function(){
-
-                var n = self.getNode().parentsUntil(self.elem).andSelf().first();
-                var pos = self.getCursorPos(n);
-                var elem;
-                var matched = self.isWrapped('blockquote');
-                if(!!matched.length){
-                    matched.each(function(){
-                        elem = $('<p></p>');
-                        $(this).before(
-                            elem.html($(this).contents())
-                        );
-                        if (elem.text() == ""){
-                            elem.html('<br/>')
-                        }
-
-                        $(this).remove();
-                    });
-                }
-                else{
-                    elem = $('<blockquote>');
-                    console.log('inserting element')
-                    n.replaceWith(elem.append(n.contents()));
-                }
-                self.setCursorAtPos(elem, pos);
-//                elem.focus();
+                // addRemoveBlock = function(block){ }
+//                return self.addRemoveBlock.call('blockquote', this);
             }
         };
 
@@ -1118,6 +1149,38 @@
        }
        return charCount;
    };
+
+    EasyEditor.prototype.addRemoveBlock = function(self, block){
+        /*
+            block: string valid name of tag to create
+        */
+        var n = self.getNode().parentsUntil(self.elem).andSelf().first();
+        var pos = self.getCursorPos(n);
+        var elem;
+        var matched = self.isWrapped(block);
+        if(!!matched.length){
+            matched.each(function(){
+                elem = $('<p></p>');
+                $(this).before(
+                    elem.html($(this).contents())
+                );
+                if (elem.text() == ""){
+                    elem.html('<br/>')
+                }
+
+                $(this).remove();
+            });
+        }
+        else{
+            elem = $('<'+ block +'>')
+            console.log('inserting element')
+            n.replaceWith(elem.append(n.contents()));
+        }
+        self.setCursorAtPos(elem, pos);
+
+        // return newly created element.
+        return elem
+    };
 
     window.EasyEditor = EasyEditor;
 
