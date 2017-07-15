@@ -235,30 +235,35 @@ utils: {
                 }
                 else {
                     e.preventDefault();
+                    var content = O.breakLine();
 
-                   var node = O.getNode();
+                   //var node = O.getNode();
 
-                   var elem, cur = node.parentsUntil(O.elem).andSelf().first();
+                   var elem,
+                       cur = O.getNode().parentsUntil(O.elem).andSelf().first();
                    //========== breaking the content =========
-                   var pos = O.getCursorPos(cur);
-                   var rcontent = cur.text().substring(pos, cur.text().length);
-                   cur.text(cur.text().substring(0, pos));
-                   var l_content = rcontent;
+                   //var pos = O.getCursorPos(cur);
+                   //var rcontent = cur.text().substring(pos, cur.text().length);
+                   //cur.text(cur.text().substring(0, pos));
+//                   var l_content = rcontent;
                    //========== over =========================
 
                    // if some element is already there and its not empty.
-                   if(!!cur.next().length && cur.next().text()==""){
-                        elem = cur.next();
-                   }
-                   else {
-                        elem = $('<p><br/></p>');
-                        cur.after(elem);
-                   }
-
-                   if (l_content != ""){
-                        elem.html(l_content);
-                   }
-                   O.setCursorAtPos(elem, 0);
+//                   if(!!cur.next().length && cur.next().text()==""){
+//                        elem = cur.next();
+//                   }
+//                   else {
+//                        elem = $('<p><br/></p>');
+//                        cur.after(elem);
+//                   }
+                    if(content.html().trim() === ""){
+                        content.append('<br/>')
+                    }
+                    cur.after(content);
+//                   if (content != ""){
+//                        elem.prepend(content);
+//                   }
+                   O.setCursorAtPos(content, 0);
                    return false;
                 }
 
@@ -1126,7 +1131,7 @@ utils: {
             node;
 
         if (selection.focusNode) {
-            if (parent.find(selection.focusNode).length > 0) {
+            if (parent.is(selection.focusNode) || parent.find(selection.focusNode).length > 0) {
                 node = selection.focusNode;
                 charCount = selection.focusOffset;
 
@@ -1180,6 +1185,49 @@ utils: {
 
         // return newly created element.
         return elem
+    };
+
+    EasyEditor.prototype.breakLine = function(){
+        var O = this;
+        var node = O.getNode();
+        // ps = [p, span, b, textNode] it will be an array starting from a paragraph node.
+        var ps = node.parentsUntil(O.elem).andSelf(); //.filter(function(){return this.nodeType != 3 });
+        var lastNode = ps.last(); // this should be a text node (closest to cursor.)
+        var pos = O.getCursorPos(lastNode);
+
+        // setting this on assumption that there will always be atleast two elements present in ps (textNode and its parent).
+        var P = ps.first().clone().empty();
+
+        // firefox places cursor at beginning with no text node.
+        if (ps.length==1 && lastNode.html() != ""){
+            console.log("Firefox buggy case ...");
+            var clonedNode = lastNode.clone();
+            lastNode.html('<br/>');
+            return clonedNode
+        }
+        
+        if(lastNode[0].nodeType === 3){
+            // text after cursor in textNode.
+            var nie = document.createTextNode(lastNode.text().substring(pos, lastNode.text().length));
+            // text before cursor in textNode.
+            var l_txt = lastNode.text().substring(0, pos);
+            l_txt.trim() == "" ? lastNode.before('<br/>') : lastNode.before(document.createTextNode(l_txt));
+        }
+        for(var i = ps.length - 2; i>=0; i--){
+            P = $(ps[i]).clone().empty();
+            P.append(nie);
+            var e = ps[i+1];
+            while(e.nextSibling){
+                P.append(e.nextSibling);
+            }
+            nie = P;
+        }
+        console.log('next line : ', P.html());
+        // it will be good to remove at last.
+        if(lastNode[0].nodeType === 3){
+            lastNode.remove();
+        }
+        return P;
     };
 
     window.EasyEditor = EasyEditor;
