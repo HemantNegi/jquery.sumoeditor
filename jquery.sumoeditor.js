@@ -203,30 +203,19 @@ utils: {
 
                 var node = O.getNode().parentsUntil(O.elem).andSelf().first();
                 var pos = O.getCursorPos(node);
+                for(var i=0; i < O.bk_re.length; i++){
+                    if(node.is(O.bk_re[i]) && pos == 0){
+                        e.preventDefault();
+                        var ne = $('<p></p>');
+                        ne.prepend(node.contents());
+                        node.before(ne);
+                        node.remove();
+                        ne = ne.contents().first() || ne;
+                        O.setCursorAtPos(ne, 0);
+                    }
+                }
                 console.log('backspace pressed - cursor position is: ', pos, '  Node: ', node.prop('tagName'));
 
-
-                // prevent deletion of last space.
-//                if ($('p',O.elem).length===1 && $('p',O.elem).text().trim()==="" && !$('p :not(br)',O.elem).length){
-//                    e.preventDefault();
-//                    return false;
-//                }
-
-                // handle generated div scenario.
-//                var c = O.getNode();
-//                if(c.is('li:first-child') && c.parent().text().trim()==""){
-//                    e.preventDefault();
-//                    c.parent().remove();
-//                    console.log("deleted last li element");
-//                    return false;
-//                }
-//                c.parentsUntil(O.elem).filter(function(){return $(this).is('div') }).children().unwrap()
-//                 if (c.parent().is('div')){
-//                     e.preventDefault();
-//                     c.unwrap('div');
-                    
-//                     return false;
-//                 }
             }
             else if(e.keyCode === 13 && O.isSelectionInsideElement('li') === false) {
 
@@ -236,33 +225,12 @@ utils: {
                 else {
                     e.preventDefault();
                     var content = O.breakLine();
-
-                   //var node = O.getNode();
-
                    var elem,
                        cur = O.getNode().parentsUntil(O.elem).andSelf().first();
-                   //========== breaking the content =========
-                   //var pos = O.getCursorPos(cur);
-                   //var rcontent = cur.text().substring(pos, cur.text().length);
-                   //cur.text(cur.text().substring(0, pos));
-//                   var l_content = rcontent;
-                   //========== over =========================
-
-                   // if some element is already there and its not empty.
-//                   if(!!cur.next().length && cur.next().text()==""){
-//                        elem = cur.next();
-//                   }
-//                   else {
-//                        elem = $('<p><br/></p>');
-//                        cur.after(elem);
-//                   }
                     if(content.html().trim() === ""){
                         content.append('<br/>')
                     }
                     cur.after(content);
-//                   if (content != ""){
-//                        elem.prepend(content);
-//                   }
                    O.setCursorAtPos(content, 0);
                    return false;
                 }
@@ -330,6 +298,7 @@ utils: {
     };
 
     // inject button events
+    EasyEditor.prototype.bk_re = [];
     EasyEditor.prototype.injectButton = function(settings){
         var self = this;
 
@@ -351,6 +320,11 @@ utils: {
         }
         else {
             buttonTitle = settings.buttonIdentifier.replace(/\W/g, ' ');
+        }
+
+        // if removeOnBackSpace is set
+        if(settings.removeOnBackSpace){
+            this.bk_re.push(settings.blockName);
         }
 
         // adding button html
@@ -874,9 +848,10 @@ utils: {
         var settings = {
             buttonIdentifier: 'header-2',
             buttonHtml: 'H2',
+            blockName: 'h2',
             clickHandler: function(){
 //                document.execCommand('italic', false, '');
-                self.wrapSelectionWithNodeName({ nodeName: 'h2', blockElement: true });
+//                self.wrapSelectionWithNodeName({ nodeName: 'h2', blockElement: true });
             }
         };
 
@@ -888,6 +863,7 @@ utils: {
         var settings = {
             buttonIdentifier: 'header-3',
             buttonHtml: 'H3',
+            blockName: 'h3',
             clickHandler: function(){
                 self.wrapSelectionWithNodeName({ nodeName: 'h3', blockElement: true });
             }
@@ -901,6 +877,7 @@ utils: {
         var settings = {
             buttonIdentifier: 'header-4',
             buttonHtml: 'H4',
+            blockName: 'h4',
             clickHandler: function(){
                 self.wrapSelectionWithNodeName({ nodeName: 'h4', blockElement: true });
             }
@@ -967,6 +944,7 @@ utils: {
             buttonIdentifier: 'quote',  // selector
             buttonHtml: 'Quote',        // caption value
             blockName: 'blockquote',
+            removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
             clickHandler: function(){
                 // addRemoveBlock = function(block){ }
 //                return self.addRemoveBlock.call('blockquote', this);
