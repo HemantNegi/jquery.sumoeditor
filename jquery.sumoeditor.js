@@ -201,20 +201,28 @@ utils: {
 
             if(e.keyCode === 8 ){ // backspace,
 
-                var node = O.getNode().parentsUntil(O.elem).andSelf().first();
+                var node = O.getNode() //.parentsUntil(O.elem).andSelf().first();
                 var pos = O.getCursorPos(node);
-                for(var i=0; i < O.bk_re.length; i++){
-                    if(node.is(O.bk_re[i]) && pos == 0){
-                        e.preventDefault();
-                        var ne = $('<p></p>');
-                        ne.prepend(node.contents());
-                        node.before(ne);
-                        node.remove();
-                        ne = ne.contents().first() || ne;
-                        O.setCursorAtPos(ne, 0);
+                if(pos == 0){
+                    // replace tags(O.bk_re) with <p>.
+                    var _node=node[0];
+                    if(_node.nodeType==3 && !_node.previousSibling) node = node.parent();
+                    for(var i=0; i < O.bk_re.length; i++){
+                        if(node.is(O.bk_re[i])){
+                            e.preventDefault();
+                            var ne = $('<p></p>');
+                            ne.prepend(node.contents());
+                            node.before(ne);
+                            node.remove();
+                            ne = ne.contents().first() || ne;
+                            O.setCursorAtPos(ne, 0);
+                        }
                     }
+
                 }
-                console.log('backspace pressed - cursor position is: ', pos, '  Node: ', node.prop('tagName'));
+
+
+                console.log('== backspace pressed == pos: ', pos, '  Node: ', node.prop('tagName'));
 
             }
             else if(e.keyCode === 13 && O.isSelectionInsideElement('li') === false) {
@@ -256,10 +264,6 @@ utils: {
 
     EasyEditor.prototype.getNode = function(){
         var node = window.getSelection().anchorNode;
-//        console.log('getNode returns: ', node.tagName, '  Node type: ', node.nodeType)
-        if (node.tagName === 'DIV'){
-            //debugger;
-        }
         if(!$.contains(this.elem, node)){
             console.log('getNode Selection is outside the editor! Last node returned.');
             return $('#editor').children().last();
@@ -1189,7 +1193,8 @@ utils: {
             var nie = document.createTextNode(lastNode.text().substring(pos, lastNode.text().length));
             // text before cursor in textNode.
             var l_txt = lastNode.text().substring(0, pos);
-            l_txt.trim() == "" ? lastNode.before('<br/>') : lastNode.before(document.createTextNode(l_txt));
+            l_txt == "" ? lastNode.before('<br/>') : lastNode.before(document.createTextNode(l_txt));
+           // if(l_txt)
         }
         for(var i = ps.length - 2; i>=0; i--){
             P = $(ps[i]).clone().empty();
