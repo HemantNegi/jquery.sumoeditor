@@ -641,7 +641,7 @@
     EasyEditor.prototype.isWrapped = function (tagName) {
         var n = this.getNode();
         return n.parentsUntil(this.elem).andSelf().filter(function () {
-            return $(this).is(tagName)
+            return $(this).is(tagName);
         });
     };
 
@@ -964,8 +964,11 @@
         var settings = {
             buttonIdentifier: 'list',
             buttonHtml: 'UL',
+             blockName: 'li',    // these will always be the first child of editor.
+            removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
+
             clickHandler: function () {
-                self.wrapSelectionWithList();
+                //self.wrapSelectionWithList();
             }
         };
 
@@ -1147,22 +1150,61 @@
         var elem;
         var matched = self.isWrapped(block);
         if (!!matched.length) {
-            matched.each(function () {
-                elem = $('<p></p>');
-                $(this).before(
-                    elem.html($(this).contents())
-                );
+            // begin removing the block.
+            // matched.each(function() {
+                var mE = matched.first();//$(this);
+                elem = $('<p></p>')
+                    .html(mE.contents());
                 if (elem.text() == "") {
                     elem.html('<br/>')
                 }
 
-                $(this).remove();
-            });
+                if(block === 'li') {
+                    // handle list split when cursor is on non edge li.
+                    var ul = mE.parent();
+                    if(mE.is(':first-child')) {
+                        ul.before(elem);
+                    }
+                    else if(mE.is(':last-child')) {
+                        ul.after(elem);
+                    }
+                    else{
+                        // create a new list for previous li's
+                        ul.before(
+                            ul.clone()
+                                .empty()
+                                .append(mE.prevAll())
+                        );
+                        ul.before(elem);
+                    }
+
+                    mE.remove();
+                    if(!ul.children('li').length){
+                        ul.remove();
+                    }
+                }
+                else
+                {
+                    mE.before(elem);
+                    mE.remove();
+                }
+            // });
         }
         else {
-            elem = $('<' + block + '>')
-            console.log('inserting element')
-            n.replaceWith(elem.append(n.contents()));
+            // begin adding the block..
+            elem = $('<' + block + '>');
+            console.log('inserting element');
+
+            if (block === 'li'){
+                // TODO: case when there is a ul already before and after.
+                elem = $('<ul></ul>')
+                    .append(elem.append(n.contents()));
+                n.replaceWith(elem);
+
+            }
+            else{
+                n.replaceWith(elem.append(n.contents()));
+            }
         }
         self.setCursorAtPos(elem, pos);
 
