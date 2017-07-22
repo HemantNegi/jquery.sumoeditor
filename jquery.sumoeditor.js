@@ -1145,7 +1145,19 @@
         /*
          block: (string) valid name of tag to create
          */
-        var n = self.getNode().parentsUntil(self.elem).andSelf().first();
+        var getClosestBlock = function() {
+            /*
+                returns the closest patent which is a block element
+            */
+            var p = self.getNode().parentsUntil(self.elem).andSelf();
+            var n = p.first();
+            // here an exception is ul > li
+            if (n.is('ul')) n = $(p[1]);
+            return n;
+        };
+
+        var n = getClosestBlock();
+
         var pos = self.getCursorPos(n);
         var elem;
         var matched = self.isWrapped(block);
