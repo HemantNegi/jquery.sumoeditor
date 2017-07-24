@@ -373,7 +373,7 @@
                     event.preventDefault();
                 }
 
-                console.log('element pos: ', self.currentElement, self.cursorPos)
+                console.log('element pos: ', self.currentElement, self.cursorPos);
                 self.setCursorAtPos(self.currentElement, self.cursorPos);
                 self.focusHistory.focus();
 
@@ -962,13 +962,29 @@
     EasyEditor.prototype.ul = function () {
         var self = this;
         var settings = {
-            buttonIdentifier: 'list',
+            buttonIdentifier: 'ulist',
             buttonHtml: 'UL',
-             blockName: 'li',    // these will always be the first child of editor.
-            removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
+            // blockName: 'li',    // these will always be the first child of editor.
+            // removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
 
             clickHandler: function () {
-                //self.wrapSelectionWithList();
+                self.listHandler('ul');
+            }
+        };
+
+        self.injectButton(settings);
+    };
+
+    EasyEditor.prototype.ol = function () {
+        var self = this;
+        var settings = {
+            buttonIdentifier: 'olist',
+            buttonHtml: 'OL',
+            // blockName: 'li',    // these will always be the first child of editor.
+            // removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
+
+            clickHandler: function () {
+                self.listHandler('ol');
             }
         };
 
@@ -1065,6 +1081,17 @@
         sel.addRange(range);
     };
 
+    EasyEditor.prototype.getClosestBlock = function() {
+        /*
+            returns the closest patent which is a block element
+        */
+        var self = this;
+        var p = self.getNode().parentsUntil(self.elem).andSelf();
+        var n = p.first();
+        // here an exception is list, in that case return the li.
+        if (n.is('ul')) n = $(p[1]);
+        return n;
+    };
     EasyEditor.prototype.setCursorAtPos = function (E, pos) {
         // ref: https://stackoverflow.com/questions/6249095/how-to-set-caretcursor-position-in-contenteditable-element-div
         var createRange = function (node, chars, range) {
@@ -1145,19 +1172,7 @@
         /*
          block: (string) valid name of tag to create
          */
-        var getClosestBlock = function() {
-            /*
-                returns the closest patent which is a block element
-            */
-            var p = self.getNode().parentsUntil(self.elem).andSelf();
-            var n = p.first();
-            // here an exception is ul > li
-            if (n.is('ul')) n = $(p[1]);
-            return n;
-        };
-
-        var n = getClosestBlock();
-
+        var n = self.getClosestBlock();
         var pos = self.getCursorPos(n);
         var elem;
         var matched = self.isWrapped(block);
@@ -1223,6 +1238,10 @@
         // return newly created element.
         return elem
     };
+
+    // EasyEditor.prototype.listHandler = function (list){
+    //     document.execCommand('insertOrderedList', false, '');
+    // };
 
     EasyEditor.prototype.breakLine = function () {
         var O = this;
