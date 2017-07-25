@@ -964,11 +964,11 @@
         var settings = {
             buttonIdentifier: 'ulist',
             buttonHtml: 'UL',
-            // blockName: 'li',    // these will always be the first child of editor.
-            // removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
+            blockName: 'ul',            // these will always be the first child of editor.
+            //removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
 
             clickHandler: function () {
-                self.listHandler('ul');
+                // self.listHandler('ul');
             }
         };
 
@@ -980,11 +980,11 @@
         var settings = {
             buttonIdentifier: 'olist',
             buttonHtml: 'OL',
-            // blockName: 'li',    // these will always be the first child of editor.
-            // removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
+            blockName: 'ol',            // these will always be the first child of editor.
+            //removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
 
             clickHandler: function () {
-                self.listHandler('ol');
+                // self.listHandler('ol');
             }
         };
 
@@ -1172,43 +1172,21 @@
         /*
          block: (string) valid name of tag to create
          */
-        var n = self.getClosestBlock();
-        var pos = self.getCursorPos(n);
+        var pB = self.getClosestBlock(); // parent Block element.
+        var pos = self.getCursorPos(pB);
         var elem;
         var matched = self.isWrapped(block);
         if (!!matched.length) {
             // begin removing the block.
             // matched.each(function() {
                 var mE = matched.first();//$(this);
-                elem = $('<p></p>')
-                    .html(mE.contents());
+                elem = $('<p></p>').html(mE.contents());
                 if (elem.text() == "") {
                     elem.html('<br/>')
                 }
 
-                if(block === 'li') {
-                    // handle list split when cursor is on non edge li.
-                    var ul = mE.parent();
-                    if(mE.is(':first-child')) {
-                        ul.before(elem);
-                    }
-                    else if(mE.is(':last-child')) {
-                        ul.after(elem);
-                    }
-                    else{
-                        // create a new list for previous li's
-                        ul.before(
-                            ul.clone()
-                                .empty()
-                                .append(mE.prevAll())
-                        );
-                        ul.before(elem);
-                    }
-
-                    mE.remove();
-                    if(!ul.children('li').length){
-                        ul.remove();
-                    }
+                if(block === 'ul' || block == 'ol') {
+                    self.removeList();
                 }
                 else
                 {
@@ -1219,18 +1197,14 @@
         }
         else {
             // begin adding the block..
-            elem = $('<' + block + '>');
-            console.log('inserting element');
-
-            if (block === 'li'){
-                // TODO: case when there is a ul already before and after.
-                elem = $('<ul></ul>')
-                    .append(elem.append(n.contents()));
-                n.replaceWith(elem);
-
+            if (block == 'ul' || block == 'ol'){
+                elem = self.addList(block, pB);
             }
-            else{
-                n.replaceWith(elem.append(n.contents()));
+            else
+            {
+                elem = $('<' + block + '>');
+                console.log('inserting element');
+                pB.replaceWith(elem.append(pB.contents()));
             }
         }
         self.setCursorAtPos(elem, pos);
@@ -1242,7 +1216,37 @@
     // EasyEditor.prototype.listHandler = function (list){
     //     document.execCommand('insertOrderedList', false, '');
     // };
+    EasyEditor.prototype.addList = function(block, pB){
+        // TODO: case when there is a ul already before and after.
+        var li = $('<li>').append(pB.contents());
+        var elem = $('<' + block + '>').append(li);
+        pB.replaceWith(elem);
+        return elem
+    };
+    EasyEditor.prototype.removeList = function (block, pB) {
+        // handle list split when cursor is on non edge li.
+        var ul = mE.parent();
+        if (mE.is(':first-child')) {
+            ul.before(elem);
+        }
+        else if (mE.is(':last-child')) {
+            ul.after(elem);
+        }
+        else {
+            // create a new list for previous li's
+            ul.before(
+                ul.clone()
+                    .empty()
+                    .append(mE.prevAll())
+            );
+            ul.before(elem);
+        }
 
+        mE.remove();
+        if (!ul.children('li').length) {
+            ul.remove();
+        }
+    };
     EasyEditor.prototype.breakLine = function () {
         var O = this;
         var node = O.getNode();
