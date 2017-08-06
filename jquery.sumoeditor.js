@@ -166,14 +166,25 @@
                 console.log('DOM observer: div removed', c);
             });
 
+            // wrap any orphan text nodes in <p>
+           /* $('#editor').contents().each(function(i, e){
+                if($(e).is('br')) $(e).remove();
+                if(e.nodeType == 3 && $(e).text() != ""){
+                    var p = $('<p></p>');
+                    p.insertBefore(e);
+                    p.append(e)
+                }
+            });
+           */
+
             // handle case when editor is empty.
             // There must always be a p element present in the editor.
             if (!$(O.elem).children(':not(br)').length) {
+                // debugger;
                 $('br', O.elem).remove();
                 document.execCommand('insertHTML', false, '<p><br/></p>');
                 console.log('DOM observer: editor empty: p inserted');
             }
-
             /*
              // remove unnecessary elements. (firefox generates too much nested p)
              $('*>p', O.elem).each(function(){
@@ -263,15 +274,22 @@
 
     };
 
+    /*
+     * is the selection inside of editor. returns true if inside.
+     */
+    EasyEditor.prototype.isSelInside = function () {
+        var node = window.getSelection().anchorNode;
+        return $.contains(this.elem, node);
+    };
+
     EasyEditor.prototype.getNode = function () {
         var sel = window.getSelection();
         var node = sel.anchorNode;
 
-        if (!$.contains(this.elem, node)) {
+        if (!this.isSelInside()) {
             console.log('getNode Selection is outside the editor! Last node returned.');
             return $('#editor').contents().last();
         }
-
 
         // this handles the issue with firefox. when cursor is in between two text nodes then
         // sel.anchorNode will be the parent of these text nodes, and hence parent node is returned.
@@ -373,9 +391,12 @@
                     event.preventDefault();
                 }
 
-                console.log('element pos: ', self.currentElement, self.cursorPos);
-                self.setCursorAtPos(self.currentElement, self.cursorPos);
-                self.focusHistory.focus();
+
+                if(!self.isSelInside()) {
+                    console.log('element pos: ', self.currentElement, self.cursorPos);
+                    self.setCursorAtPos(self.currentElement, self.cursorPos);
+                    self.focusHistory.focus();
+                }
 
                 settings.clickHandler.call(this, this);
 
@@ -948,6 +969,8 @@
         var settings = {
             buttonIdentifier: 'quote',  // selector
             buttonHtml: 'Quote',        // caption value
+            // type: 'block',
+            // breakOnEnter: False,
             blockName: 'blockquote',    // these will always be the first child of editor.
             removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
             clickHandler: function () {
@@ -964,11 +987,12 @@
         var settings = {
             buttonIdentifier: 'ulist',
             buttonHtml: 'UL',
-            blockName: 'ul',            // these will always be the first child of editor.
+            // blockName: 'ul',            // these will always be the first child of editor.
             //removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
 
             clickHandler: function () {
                 // self.listHandler('ul');
+                document.execCommand('insertUnOrderedList', false, '');
             }
         };
 
@@ -980,11 +1004,12 @@
         var settings = {
             buttonIdentifier: 'olist',
             buttonHtml: 'OL',
-            blockName: 'ol',            // these will always be the first child of editor.
+            // blockName: 'ol',            // these will always be the first child of editor.
             //removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
 
             clickHandler: function () {
                 // self.listHandler('ol');
+                document.execCommand('insertOrderedList', false, '');
             }
         };
 
