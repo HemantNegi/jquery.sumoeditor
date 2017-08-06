@@ -1152,25 +1152,20 @@
             if (window.getSelection) {
                 var sel = window.getSelection();
                 // if (!sel.isCollapsed) {
-                    //return this.getRangeSelectedNodes(sel.getRangeAt(0));
-                    var range = sel.getRangeAt(0);
-                    var node = this.getRootNode(range.startContainer);
-                    var endNode = this.getRootNode(range.endContainer);
-                    // Special case for a range that is contained within a single node
-                    if (node.is(endNode)) {
-                        return [node];
-                    }
-
-                    // Iterate nodes until we hit the end container
-                    var rangeNodes = [node];
-                    while (node && !node.is(endNode)) {
-                        node = node.next();
-                        rangeNodes.push(node);
-                    }
-                    return {
-                        nodes: rangeNodes,
-                        range: range,
-                    };
+                //return this.getRangeSelectedNodes(sel.getRangeAt(0));
+                var range = sel.getRangeAt(0);
+                var node = this.getRootNode(range.startContainer);
+                var endNode = this.getRootNode(range.endContainer);
+                // Special case for a range that is contained within a single node
+                var rangeNodes = [node];
+                while (node && !node.is(endNode)) {
+                    node = node.next();
+                    rangeNodes.push(node);
+                }
+                return {
+                    nodes: rangeNodes,
+                    range: range,
+                };
 
                 // }
             }else{
