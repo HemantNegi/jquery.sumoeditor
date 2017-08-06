@@ -43,11 +43,15 @@
     // initialize
     EasyEditor.prototype.attachEvents = function () {
 //        debugger;
+
         this.bootstrap();
+
         this.addToolbar();
         this.handleKeypress();
         this.handleResizeImage();
         this.utils();
+
+        this.selection.elem = this.elem;
 
         var self = this;
         this.currentElement = $('#editor');
@@ -401,7 +405,8 @@
                 settings.clickHandler.call(this, this);
 
                 if (settings.blockName) {
-                    self.currentElement = self.addRemoveBlock(self, settings.blockName);
+                    // self.currentElement = self.addRemoveBlock(self, settings.blockName);
+                    self.addRemoveBlock(self, settings.blockName);
                 }
 
                 // set currently created element to currentElement.
@@ -657,13 +662,6 @@
         }
 
         return result;
-    };
-
-    EasyEditor.prototype.isWrapped = function (tagName) {
-        var n = this.getNode();
-        return n.parentsUntil(this.elem).andSelf().filter(function () {
-            return $(this).is(tagName);
-        });
     };
 
     // remove wrap if already wrapped with same tag
@@ -1105,7 +1103,131 @@
         sel.removeAllRanges();
         sel.addRange(range);
     };
+/* Actually useful code */
+    EasyEditor.prototype.selection = {
+        // REF: https://stackoverflow.com/questions/7781963/js-get-array-of-all-selected-nodes-in-contenteditable-div
+        nextNode: function (node) {
+            if (node.hasChildNodes()) {
+                return node.firstChild;
+            } else {
+                while (node && !node.nextSibling) {
+                    node = node.parentNode;
+                }
+                if (!node) {
+                    return null;
+                }
+                return node.nextSibling;
+            }
+        },
 
+        getRangeSelectedNodes: function (range) {
+            var node = range.startContainer;
+            var endNode = range.endContainer;
+
+            // Special case for a range that is contained within a single node
+            if (node == endNode) {
+                return [node];
+            }
+
+            // Iterate nodes until we hit the end container
+            var rangeNodes = [];
+            while (node && node != endNode) {
+                rangeNodes.push( node = this.nextNode(node) );
+            }
+
+            // Add partially selected nodes at the start of the range
+            node = range.startContainer;
+            while (node && node != range.commonAncestorContainer) {
+                rangeNodes.unshift(node);
+                node = node.parentNode;
+            }
+
+            return rangeNodes;
+        },
+
+        /*
+        * Aliased for get.
+        * */
+        pull: function () {
+            if (window.getSelection) {
+                var sel = window.getSelection();
+                // if (!sel.isCollapsed) {
+                    //return this.getRangeSelectedNodes(sel.getRangeAt(0));
+                    var range = sel.getRangeAt(0);
+                    var node = this.getRootNode(range.startContainer);
+                    var endNode = this.getRootNode(range.endContainer);
+                    // Special case for a range that is contained within a single node
+                    if (node.is(endNode)) {
+                        return [node];
+                    }
+
+                    // Iterate nodes until we hit the end container
+                    var rangeNodes = [node];
+                    while (node && !node.is(endNode)) {
+                        node = node.next();
+                        rangeNodes.push(node);
+                    }
+                    return {
+                        nodes: rangeNodes,
+                        range: range,
+                    };
+
+                // }
+            }else{
+                alert('Shitty browser! does not support window.getSelection');
+            }
+            return {
+                nodes:[],
+            };
+        } ,
+
+        getNodes: function () {
+            return this.pull().nodes;
+        },
+
+        /*
+        * Root nodes are the first children of editor.
+        * */
+        getRootNode: function(n) {
+            return $(n).parentsUntil(this.elem).andSelf().first();
+        },
+
+        /*
+        * Do any replace element operation using this.
+        * */
+        preserve: function (modify) {
+            var sel = this.pull();
+            var range = sel.range;
+            var st = range.startContainer;
+            var so = range.startOffset;
+            var et = range.endContainer;
+            var eo = range.endOffset;
+            $.each(sel.nodes, function (i, n) {
+                var created = modify(n);
+
+                if(n.is(range.startContainer)){
+                    range.startContainer = created[0];
+                }
+                if(n.is(range.endContainer)){
+                    range.endContainer = created[0];
+                }
+            });
+            // set selection back;
+            // range = document.createRange();
+            sel = window.getSelection();
+            range.setStart(st, so);
+            range.setEnd(et, eo);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    };
+
+    EasyEditor.prototype.isWrapped = function (tagName) {
+        var n = this.getNode();
+        return n.parentsUntil(this.elem).andSelf().filter(function () {
+            return $(this).is(tagName);
+        });
+    };
     EasyEditor.prototype.getClosestBlock = function() {
         /*
             returns the closest patent which is a block element
@@ -1197,45 +1319,47 @@
         /*
          block: (string) valid name of tag to create
          */
-        var pB = self.getClosestBlock(); // parent Block element.
-        var pos = self.getCursorPos(pB);
-        var elem;
-        var matched = self.isWrapped(block);
-        if (!!matched.length) {
-            // begin removing the block.
-            // matched.each(function() {
-                var mE = matched.first();//$(this);
-                elem = $('<p></p>').html(mE.contents());
-                if (elem.text() == "") {
-                    elem.html('<br/>')
-                }
+        var nodes = self.selection.preserve(function(mE){
+            var elem;
+            if (mE.is(block)) {
+                // begin removing the block.
+                    elem = $('<p></p>').html(mE.contents());
+                    if (elem.text() == "") {
+                        elem.html('<br/>')
+                    }
 
-                if(block === 'ul' || block == 'ol') {
-                    self.removeList();
+                    if(block === 'ul' || block == 'ol') {
+                        self.removeList();
+                    }
+                    else
+                    {
+                        mE.before(elem);
+                        mE.remove();
+                    }
+                // });
+            }
+            else {
+                // begin adding the block..
+                if (block == 'ul' || block == 'ol'){
+                    elem = self.addList(block, mE);
                 }
                 else
                 {
-                    mE.before(elem);
+                    elem = $('<' + block + '>');
+                    console.log('inserting element');
+                    mE.after(elem);
+                    elem.append(mE.contents());
+                    // mE.replaceWith(elem.append(mE.contents()));
                     mE.remove();
                 }
-            // });
-        }
-        else {
-            // begin adding the block..
-            if (block == 'ul' || block == 'ol'){
-                elem = self.addList(block, pB);
             }
-            else
-            {
-                elem = $('<' + block + '>');
-                console.log('inserting element');
-                pB.replaceWith(elem.append(pB.contents()));
-            }
-        }
-        self.setCursorAtPos(elem, pos);
+
+            return elem;
+        });
+        // self.setCursorAtPos(elem, pos);
 
         // return newly created element.
-        return elem
+        return null;
     };
 
     // EasyEditor.prototype.listHandler = function (list){
