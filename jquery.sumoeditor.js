@@ -282,8 +282,8 @@
      * is the selection inside of editor. returns true if inside.
      */
     EasyEditor.prototype.isSelInside = function () {
-        var node = window.getSelection().anchorNode;
-        return $.contains(this.elem, node);
+        var node = window.getSelection().focusNode;
+        return $(this.elem).is(node) || $.contains(this.elem, node);
     };
 
     EasyEditor.prototype.getNode = function () {
@@ -397,7 +397,7 @@
 
 
                 if(!self.isSelInside()) {
-                    console.log('element pos: ', self.currentElement, self.cursorPos);
+                    console.log('setting element pos: ', self.currentElement, self.cursorPos);
                     self.setCursorAtPos(self.currentElement, self.cursorPos);
                     self.focusHistory.focus();
                 }
@@ -874,7 +874,7 @@
             buttonHtml: 'H3',
             blockName: 'h3',
             clickHandler: function () {
-                self.wrapSelectionWithNodeName({nodeName: 'h3', blockElement: true});
+                // self.wrapSelectionWithNodeName({nodeName: 'h3', blockElement: true});
             }
         };
 
@@ -888,7 +888,7 @@
             buttonHtml: 'H4',
             blockName: 'h4',
             clickHandler: function () {
-                self.wrapSelectionWithNodeName({nodeName: 'h4', blockElement: true});
+                // self.wrapSelectionWithNodeName({nodeName: 'h4', blockElement: true});
             }
         };
 
@@ -1106,85 +1106,91 @@
 /* Actually useful code */
     EasyEditor.prototype.selection = {
         // REF: https://stackoverflow.com/questions/7781963/js-get-array-of-all-selected-nodes-in-contenteditable-div
-        nextNode: function (node) {
-            if (node.hasChildNodes()) {
-                return node.firstChild;
-            } else {
-                while (node && !node.nextSibling) {
-                    node = node.parentNode;
-                }
-                if (!node) {
-                    return null;
-                }
-                return node.nextSibling;
-            }
-        },
-
-        getRangeSelectedNodes: function (range) {
-            var node = range.startContainer;
-            var endNode = range.endContainer;
-
-            // Special case for a range that is contained within a single node
-            if (node == endNode) {
-                return [node];
-            }
-
-            // Iterate nodes until we hit the end container
-            var rangeNodes = [];
-            while (node && node != endNode) {
-                rangeNodes.push( node = this.nextNode(node) );
-            }
-
-            // Add partially selected nodes at the start of the range
-            node = range.startContainer;
-            while (node && node != range.commonAncestorContainer) {
-                rangeNodes.unshift(node);
-                node = node.parentNode;
-            }
-
-            return rangeNodes;
-        },
 
         /*
         * Aliased for get.
+        * @returns {{nodes: Array.<DOM element in selection>, range: Object.<Range Object>}}
         * */
         pull: function () {
-            if (window.getSelection) {
-                var sel = window.getSelection();
-                // if (!sel.isCollapsed) {
-                //return this.getRangeSelectedNodes(sel.getRangeAt(0));
-                var range = sel.getRangeAt(0);
-                var node = this.getRootNode(range.startContainer);
-                var endNode = this.getRootNode(range.endContainer);
-                // Special case for a range that is contained within a single node
-                var rangeNodes = [node];
-                while (node && !node.is(endNode)) {
-                    node = node.next();
-                    rangeNodes.push(node);
-                }
-                return {
-                    nodes: rangeNodes,
-                    range: range,
-                };
+            var rng = this.getRange(),
+                node = this.getRootNode(rng.start),
+                endNode = this.getRootNode(rng.end),
+                 // Special case for a range that is contained within a single node
+                nodes = [node];
 
-                // }
-            }else{
-                alert('Shitty browser! does not support window.getSelection');
+            while (node && node != endNode) {
+                node = node.nextSibling;
+                nodes.push(node);
             }
+
             return {
-                nodes:[],
+                nodes: nodes,
+                rng: rng,
             };
-        } ,
+        },
 
         getNodes: function () {
             return this.pull().nodes;
         },
 
         /*
-        * Root nodes are the first children of editor.
+        * Aliased for range
+        * @returns Object.<rng> a custom range object.
         * */
-        getRootNode: function(n) {
-            return $(n).parentsUntil(this.elem).andSelf().first();
+        getRange: function(){
+            if (window.getSelection) {
+                var sel = window.getSelection(),
+                    range = sel.getRangeAt(0),
+                    /*
+                    * @type {{
+                    *   start: Object.<DOM Node>, so: number,
+                    *   end: Object.<DOM Node>, eo: number
+                    *  }}
+                    *  a custom interpretation of range object
+                    * */
+                    rng = {
+                        start: range.startContainer,
+                        end: range.endContainer,
+                        so: range.startOffset,
+                        eo: range.endOffset
+                    };
+                    // collapsed = range.collapsed;
+
+                // firefox case: pressing ctrl + a selects editor container also.
+                if(rng.start == this.elem && rng.end == this.elem){
+                    var cn = this.elem.childNodes;
+                    rng.start = cn[0];
+                    rng.end = cn[cn.length-1];
+                    rng.so = 0;
+                    // usually rng.end should not be a text node but just a sanity check,
+                    rng.eo = rng.end.nodeType == 3 ? rng.end.length : rng.end.childNodes.length;
+                }
+                return rng;
+
+            }else{
+                alert('Shitty browser! does not support window.getSelection');
+            }
+        },
+
+        /*
+        * sets a selection in editor specified by given range.
+        * @param Object.<rng>
+        * */
+        setRange: function(rng){
+            var sel = window.getSelection();
+            var range = document.createRange();
+            range.setStart(rng.start, rng.so);
+            range.setEnd(rng.end, rng.eo);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        },
+
+        /*
+        * gets immediate children of editor containing node.
+        * @returns Object.<DOM Element>
+        * */
+        getRootNode: function(node) {
+            return $(node).parentsUntil(this.elem).andSelf()[0];
         },
 
         /*
@@ -1192,28 +1198,19 @@
         * */
         preserve: function (modify) {
             var sel = this.pull();
-            var range = sel.range;
-            var st = range.startContainer;
-            var so = range.startOffset;
-            var et = range.endContainer;
-            var eo = range.endOffset;
+            var rng = sel.rng;
+
             $.each(sel.nodes, function (i, n) {
                 var created = modify(n);
 
-                if(n.is(range.startContainer)){
-                    range.startContainer = created[0];
-                }
-                if(n.is(range.endContainer)){
-                    range.endContainer = created[0];
-                }
+                // if we have modified selection containers update them.
+                if(n == rng.start)
+                    rng.start = created;
+                if(n == rng.end)
+                    rng.end = created;
             });
-            // set selection back;
-            // range = document.createRange();
-            sel = window.getSelection();
-            range.setStart(st, so);
-            range.setEnd(et, eo);
-            sel.removeAllRanges();
-            sel.addRange(range);
+
+            this.setRange(rng);
         }
     };
 
@@ -1315,6 +1312,7 @@
          block: (string) valid name of tag to create
          */
         var nodes = self.selection.preserve(function(mE){
+            mE = $(mE);
             var elem;
             if (mE.is(block)) {
                 // begin removing the block.
@@ -1349,7 +1347,7 @@
                 }
             }
 
-            return elem;
+            return elem[0];
         });
         // self.setCursorAtPos(elem, pos);
 
