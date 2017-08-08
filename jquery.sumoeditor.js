@@ -1113,6 +1113,10 @@
         // REF: https://stackoverflow.com/questions/7781963/js-get-array-of-all-selected-nodes-in-contenteditable-div
 
         /*
+        * A list of elements which we want to consider block elements (wtf :p)
+        * */
+        BLOCK_ELEMENTS: {P:1, LI:1}, // using a map to keep lookup faster.
+        /*
         * Aliased for get.
         * @returns {{nodes: Array.<DOM element in selection>, range: Object.<Range Object>}}
         * */
@@ -1195,6 +1199,24 @@
         * @returns Object.<DOM Element>
         * */
         getRootNode: function(node) {
+            var self = this, _node;
+            $(node).parentsUntil(this.elem).andSelf().each(function (p) {
+                var b = self.BLOCK_ELEMENTS[node.tagName.toUpperCase()];
+                if (b) {
+                    _node = p;
+                    return false;
+                }
+            });
+
+            return node;
+        },
+
+        /*
+        * gets a parent block element(elements in object blockElements) OR
+        * immediate children of editor containing node.
+        * @returns Object.<DOM Element>
+        * */
+        getBlockNode: function(node) {
             return $(node).parentsUntil(this.elem).andSelf()[0];
         },
 
@@ -1403,15 +1425,20 @@
         }
     };
 
-
+    /*
+    * This was implemented because we want to create the same element after this element, and not insert <br>
+    * in same tag
+    * */
     EasyEditor.prototype.breakLine = function () {
         var O = this;
+        // debugger;
         var node = O.getNode();
         var ps = node.parentsUntil(O.elem).andSelf(); //.filter(function(){return this.nodeType != 3 });
         var lastNode = ps.last(); // this should be a text node (closest to cursor.)
         var pos = O.getCursorPos(lastNode);
 
         // setting this on assumption that there will always be atleast two elements present in ps (textNode and its parent).
+        // create a duplicate of current tag.
         var P = ps.first().clone().empty();
 
         // firefox places cursor at beginning with no text node.

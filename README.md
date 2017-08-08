@@ -6,6 +6,10 @@ RULES
 - Do not delete any node ever, always try to move it.
 - We will try to use native html tags for everything and follow w3c semantics.
 
+## elements which we want to consider block elements:
+To generate a consistent markup across the browsers, we have to make some constraints on certain tags.
+These are mostly native block elements.
+
 ## Understanding Selection and Range Objects
 
 Selection object:
