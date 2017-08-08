@@ -18,6 +18,9 @@
      ... these functions are
      }
 
+     events: {
+     }
+
      }
      */
 
@@ -241,7 +244,8 @@
                 console.log('== backspace pressed == pos: ', pos, '  Node: ', node.prop('tagName'));
 
             }
-            else if (e.keyCode === 13 && O.isSelectionInsideElement('li') === false) {
+            // else if (e.keyCode === 13 && O.isSelectionInsideElement('li') === false) {
+            else if (e.keyCode === 13) {
 
                 if (e.shiftKey === true) {
 //                    document.execCommand('insertHTML', false, '<br>');
@@ -858,6 +862,7 @@
             buttonIdentifier: 'header-2',
             buttonHtml: 'H2',
             blockName: 'h2',
+            // removeOnBackSpace: true,
             clickHandler: function () {
 //                document.execCommand('italic', false, '');
 //                self.wrapSelectionWithNodeName({ nodeName: 'h2', blockElement: true });
@@ -985,12 +990,12 @@
         var settings = {
             buttonIdentifier: 'ulist',
             buttonHtml: 'UL',
-            // blockName: 'ul',            // these will always be the first child of editor.
+            blockName: 'ul',            // these will always be the first child of editor.
             //removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
 
             clickHandler: function () {
                 // self.listHandler('ul');
-                document.execCommand('insertUnOrderedList', false, '');
+                // document.execCommand('insertUnOrderedList', false, '');
             }
         };
 
@@ -1002,12 +1007,12 @@
         var settings = {
             buttonIdentifier: 'olist',
             buttonHtml: 'OL',
-            // blockName: 'ol',            // these will always be the first child of editor.
+            blockName: 'ol',            // these will always be the first child of editor.
             //removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
 
             clickHandler: function () {
                 // self.listHandler('ol');
-                document.execCommand('insertOrderedList', false, '');
+                // document.execCommand('insertOrderedList', false, '');
             }
         };
 
@@ -1329,7 +1334,6 @@
                         mE.before(elem);
                         mE.remove();
                     }
-                // });
             }
             else {
                 // begin adding the block..
@@ -1342,7 +1346,6 @@
                     console.log('inserting element');
                     mE.after(elem);
                     elem.append(mE.contents());
-                    // mE.replaceWith(elem.append(mE.contents()));
                     mE.remove();
                 }
             }
@@ -1358,12 +1361,22 @@
     // EasyEditor.prototype.listHandler = function (list){
     //     document.execCommand('insertOrderedList', false, '');
     // };
-    EasyEditor.prototype.addList = function(block, pB){
-        // TODO: case when there is a ul already before and after.
-        var li = $('<li>').append(pB.contents());
-        var elem = $('<' + block + '>').append(li);
-        pB.replaceWith(elem);
-        return elem
+    EasyEditor.prototype.addList = function(block, mE){
+        var list, li = $('<li>').append(mE.contents());
+
+        // if there is a ul/ol already before/after append to existing list.
+        // Set priority accordingly.
+        if(mE.prev().is(block))
+            list = mE.prev();
+        else if(mE.next().is(block))
+            list = mE.prev();
+        else
+            list = $('<' + block + '>');
+
+        list.append(li);
+        mE.before(list);
+        mE.remove();
+        return list;
     };
     EasyEditor.prototype.removeList = function (block, pB) {
         // handle list split when cursor is on non edge li.
@@ -1389,10 +1402,11 @@
             ul.remove();
         }
     };
+
+
     EasyEditor.prototype.breakLine = function () {
         var O = this;
         var node = O.getNode();
-        // ps = [p, span, b, textNode] it will be an array starting from a paragraph node.
         var ps = node.parentsUntil(O.elem).andSelf(); //.filter(function(){return this.nodeType != 3 });
         var lastNode = ps.last(); // this should be a text node (closest to cursor.)
         var pos = O.getCursorPos(lastNode);

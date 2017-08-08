@@ -4,6 +4,7 @@ A javascript rich text editor for web content creation.
 RULES
 - No text node will ever be a direct child of editor.
 - Do not delete any node ever, always try to move it.
+- We will try to use native html tags for everything and follow w3c semantics.
 
 ## Understanding Selection and Range Objects
 
