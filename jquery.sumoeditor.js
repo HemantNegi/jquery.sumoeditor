@@ -1108,7 +1108,8 @@
         sel.removeAllRanges();
         sel.addRange(range);
     };
-/* Actually useful code */
+
+    /* Actually useful code */
     EasyEditor.prototype.selection = {
         // REF: https://stackoverflow.com/questions/7781963/js-get-array-of-all-selected-nodes-in-contenteditable-div
 
@@ -1116,14 +1117,15 @@
         * A list of elements which we want to consider block elements (wtf :p)
         * */
         BLOCK_ELEMENTS: {P:1, LI:1}, // using a map to keep lookup faster.
+
         /*
         * Aliased for get.
         * @returns {{nodes: Array.<DOM element in selection>, range: Object.<Range Object>}}
         * */
         pull: function () {
             var rng = this.getRange(),
-                node = this.getRootNode(rng.start),
-                endNode = this.getRootNode(rng.end),
+                node = this.getBlockNode(rng.start),
+                endNode = this.getBlockNode(rng.end),
                  // Special case for a range that is contained within a single node
                 nodes = [node];
 
@@ -1199,25 +1201,28 @@
         * @returns Object.<DOM Element>
         * */
         getRootNode: function(node) {
-            var self = this, _node;
-            $(node).parentsUntil(this.elem).andSelf().each(function (p) {
-                var b = self.BLOCK_ELEMENTS[node.tagName.toUpperCase()];
-                if (b) {
-                    _node = p;
-                    return false;
-                }
-            });
-
-            return node;
+            return $(node).parentsUntil(this.elem).andSelf()[0];
         },
 
         /*
-        * gets a parent block element(elements in object blockElements) OR
+        * gets a parent block element(elements in object BLOCK_ELEMENTS) OR
         * immediate children of editor containing node.
         * @returns Object.<DOM Element>
         * */
         getBlockNode: function(node) {
-            return $(node).parentsUntil(this.elem).andSelf()[0];
+            var self = this,
+                _node = null,
+                parents = $(node).parentsUntil(this.elem).andSelf();
+
+            parents.each(function (i, e) {
+                // ignore text nodes.
+                if(e.nodeType == 3) return;
+                if (self.BLOCK_ELEMENTS[e.tagName.toUpperCase()]) {
+                    _node = e;
+                    return false;
+                }
+            });
+            return _node ? _node: parents[0];
         },
 
         /*
@@ -1238,7 +1243,7 @@
             });
 
             this.setRange(rng);
-        }
+        },
     };
 
     EasyEditor.prototype.isWrapped = function (tagName) {
