@@ -836,6 +836,7 @@
             buttonHtml: 'B',
             clickHandler: function () {
                 // lets keep it as simple as that.
+                 document.execCommand('styleWithCSS', false, false);
                 document.execCommand('bold', false, '');
 //                self.wrapSelectionWithNodeName({ nodeName: 'strong', keepHtml: true });
             }
@@ -850,6 +851,7 @@
             buttonIdentifier: 'italic',
             buttonHtml: 'I',
             clickHandler: function () {
+                document.execCommand('styleWithCSS', false, false);
                 document.execCommand('italic', false, '');
 //                self.wrapSelectionWithNodeName({ nodeName: 'em', keepHtml: true });
             }
@@ -1475,59 +1477,60 @@
     * in same tag.
     * */
     EasyEditor.prototype.breakLine = function () {
-        var O = this;
-        // debugger;
+        var O = this,
+            rng = O.selection.getRange(),
+            curNode = $(rng.end),
+            pos = rng.eo,
+            cBNode = $(O.selection.getBlockNode(rng.end)),
+            pivot,
+            D;
 
+        // split content on caret position.
+        if (rng.end.nodeType === 3) {
+            var txt = curNode.text();
+                // text before cursor in textNode.
+                // tb = txt.substring(0, pos);
+            // tb == "" ? curNode.before('<br/>') : curNode.before(document.createTextNode(tb));
+            curNode.before(document.createTextNode(txt.substring(0, pos)));
+            D = curNode;
 
-        var node = O.getNode();
-        var ps = node.parentsUntil(O.elem).andSelf(); //.filter(function(){return this.nodeType != 3 });
-        var txtNode = ps.last(); // this should be a text node (closest to cursor.)
-        var pos = O.getCursorPos(txtNode);
-
-        // create a duplicate of current tag and insert it after current node.
-        var curr = $(O.selection.getBlockNode(txtNode));
-        var P = curr.clone().empty();
-
-        // firefox places cursor at beginning with no text node.
-        if (ps.length == 1 && txtNode.html() != "") {
-            console.log("Firefox buggy case ...");
-            var clonedNode = txtNode.clone();
-            txtNode.html('<br/>');
-            return clonedNode
-        }
-
-        if (txtNode[0].nodeType === 3) {
             // text after cursor in textNode.
-            var nie = document.createTextNode(txtNode.text().substring(pos, txtNode.text().length));
-            // text before cursor in textNode.
-            var l_txt = txtNode.text().substring(0, pos);
-            l_txt == "" ? txtNode.before('<br/>') : txtNode.before(document.createTextNode(l_txt));
-            // if(l_txt)
+            pivot = $(document.createTextNode(txt.substring(pos, txt.length)));
+            curNode.after(pivot);
+
+        } else {
+            /*
+            * TODO: Handle case: "if no childNodes exists"
+            * - Hopefully this will never occur, but if do just insert a blank textNode.
+            * */
+            pivot = curNode = curNode.contents().eq(pos);
         }
-        for (var i = ps.length - 2; i >= 0; i--) {
-            // P = $(ps[i]).clone().empty();
-            P.append(nie);
-            var e = ps[i + 1];
-            while (e.nextSibling) {
-                P.append(e.nextSibling);
+
+        // move siblings and parent siblings.
+        var parent, pars = curNode.parentsUntil(cBNode);
+        pars.push(cBNode[0]);
+        pars.each(function(i, e){
+            parent = $(e).clone().empty();
+            parent.append(pivot);
+            while (pivot.next().length) {
+                parent.append(pivot.next());
             }
-            nie = P;
-        }
-        console.log('next line : ', P.html());
+            pivot = parent;
+        });
+
         // it will be good to remove at last.
-        if (txtNode[0].nodeType === 3) {
-            txtNode.remove();
+        D?D.remove():0;
+        cBNode.after(parent);
+
+        if (cBNode.html().trim() === "") {
+            cBNode.html('<br/>');
+        }
+        if (parent.html().trim() === "") {
+            parent.html('<br/>');
         }
 
-
-        // code from calleee...
-        if (P.html().trim() === "") {
-            P.append('<br/>')
-        }
-
-        curr.after(P);
-        O.setCursorAtPos(P, 0);
-        return P;
+        O.setCursorAtPos(parent, 0);
+        return parent;
     };
 
     // wrap selection with unordered list
