@@ -253,13 +253,13 @@
                 else {
                     e.preventDefault();
                     var content = O.breakLine();
-                    var elem,
-                        cur = O.getNode().parentsUntil(O.elem).andSelf().first();
-                    if (content.html().trim() === "") {
-                        content.append('<br/>')
-                    }
-                    cur.after(content);
-                    O.setCursorAtPos(content, 0);
+                    // var elem,
+                    //     cur = O.getNode().parentsUntil(O.elem).andSelf().first();
+                    // if (content.html().trim() === "") {
+                    //     content.append('<br/>')
+                    // }
+                    // cur.after(content);
+                    // O.setCursorAtPos(content, 0);
                     return false;
                 }
 
@@ -402,7 +402,9 @@
 
                 if(!self.isSelInside()) {
                     console.log('setting element pos: ', self.currentElement, self.cursorPos);
+                    if(self.currentElement==null)console.error('can not reuse current element twice. TODO: need to update currentElement after once position is set.');
                     self.setCursorAtPos(self.currentElement, self.cursorPos);
+                    self.currentElement = null;
                     self.focusHistory.focus();
                 }
 
@@ -1144,6 +1146,28 @@
             return this.pull().nodes;
         },
 
+        getNode: function () {
+            var sel = window.getSelection();
+            var node = sel.anchorNode;
+
+            if (!this.isSelInside()) {
+                console.log('getNode Selection is outside the editor! Last node returned.');
+                return $('#editor').contents().last();
+            }
+
+            // this handles the issue with firefox. when cursor is in between two text nodes then
+            // sel.anchorNode will be the parent of these text nodes, and hence parent node is returned.
+            // Workaround: in this case return the text node which is after the cursor.
+            if (node.nodeType != 3 && sel.anchorOffset != 0) {
+                var node_ = $(node).contents()[sel.anchorOffset];
+
+                if(node_)
+                    node = node_;
+            }
+
+            return $(node)
+        },
+
         /*
         * Aliased for range
         * @returns Object.<rng> a custom range object.
@@ -1166,6 +1190,15 @@
                         eo: range.endOffset
                     };
                     // collapsed = range.collapsed;
+
+                // if any of the ends are outside of editor container.
+                // set a collapsed range on last node.
+         /*       if(!this.isInside(rng.start) || !this.isInside(rng.end)){
+                    var cn = this.elem.childNodes;
+                    rng.start = rng.end = cn[cn.length-1];
+                    // usually rng.end should not be a text node but just a sanity check,
+                    rng.so = rng.eo = rng.end.nodeType == 3 ? rng.end.length : rng.end.childNodes.length;
+                }*/
 
                 // firefox case: pressing ctrl + a selects editor container also.
                 if(rng.start == this.elem && rng.end == this.elem){
@@ -1243,6 +1276,13 @@
             });
 
             this.setRange(rng);
+        },
+
+        /*
+        * Checks if given node is inside the editor or not
+        * */
+        isInside: function (node) {
+            return this.elem == node || $.contains(this.elem, node);
         },
     };
 
@@ -1432,38 +1472,40 @@
 
     /*
     * This was implemented because we want to create the same element after this element, and not insert <br>
-    * in same tag
+    * in same tag.
     * */
     EasyEditor.prototype.breakLine = function () {
         var O = this;
         // debugger;
+
+
         var node = O.getNode();
         var ps = node.parentsUntil(O.elem).andSelf(); //.filter(function(){return this.nodeType != 3 });
-        var lastNode = ps.last(); // this should be a text node (closest to cursor.)
-        var pos = O.getCursorPos(lastNode);
+        var txtNode = ps.last(); // this should be a text node (closest to cursor.)
+        var pos = O.getCursorPos(txtNode);
 
-        // setting this on assumption that there will always be atleast two elements present in ps (textNode and its parent).
-        // create a duplicate of current tag.
-        var P = ps.first().clone().empty();
+        // create a duplicate of current tag and insert it after current node.
+        var curr = $(O.selection.getBlockNode(txtNode));
+        var P = curr.clone().empty();
 
         // firefox places cursor at beginning with no text node.
-        if (ps.length == 1 && lastNode.html() != "") {
+        if (ps.length == 1 && txtNode.html() != "") {
             console.log("Firefox buggy case ...");
-            var clonedNode = lastNode.clone();
-            lastNode.html('<br/>');
+            var clonedNode = txtNode.clone();
+            txtNode.html('<br/>');
             return clonedNode
         }
 
-        if (lastNode[0].nodeType === 3) {
+        if (txtNode[0].nodeType === 3) {
             // text after cursor in textNode.
-            var nie = document.createTextNode(lastNode.text().substring(pos, lastNode.text().length));
+            var nie = document.createTextNode(txtNode.text().substring(pos, txtNode.text().length));
             // text before cursor in textNode.
-            var l_txt = lastNode.text().substring(0, pos);
-            l_txt == "" ? lastNode.before('<br/>') : lastNode.before(document.createTextNode(l_txt));
+            var l_txt = txtNode.text().substring(0, pos);
+            l_txt == "" ? txtNode.before('<br/>') : txtNode.before(document.createTextNode(l_txt));
             // if(l_txt)
         }
         for (var i = ps.length - 2; i >= 0; i--) {
-            P = $(ps[i]).clone().empty();
+            // P = $(ps[i]).clone().empty();
             P.append(nie);
             var e = ps[i + 1];
             while (e.nextSibling) {
@@ -1473,9 +1515,18 @@
         }
         console.log('next line : ', P.html());
         // it will be good to remove at last.
-        if (lastNode[0].nodeType === 3) {
-            lastNode.remove();
+        if (txtNode[0].nodeType === 3) {
+            txtNode.remove();
         }
+
+
+        // code from calleee...
+        if (P.html().trim() === "") {
+            P.append('<br/>')
+        }
+
+        curr.after(P);
+        O.setCursorAtPos(P, 0);
         return P;
     };
 

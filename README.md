@@ -9,6 +9,7 @@ RULES
 ## elements which we want to consider block elements:
 To generate a consistent markup across the browsers, we have to make some constraints on certain tags.
 These are mostly native block elements.
+Block elements are generated on caret return.
 
 ## Understanding Selection and Range Objects
 
