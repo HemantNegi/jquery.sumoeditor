@@ -1483,54 +1483,72 @@
             pos = rng.eo,
             cBNode = $(O.selection.getBlockNode(rng.end)),
             pivot,
+            fPivot = 0, // first pivot.
             D;
 
         // split content on caret position.
         if (rng.end.nodeType === 3) {
-            var txt = curNode.text();
-                // text before cursor in textNode.
-                // tb = txt.substring(0, pos);
-            // tb == "" ? curNode.before('<br/>') : curNode.before(document.createTextNode(tb));
-            curNode.before(document.createTextNode(txt.substring(0, pos)));
-            D = curNode;
+            var txt = curNode.text(),
+                tb = txt.substring(0, pos),          // text before caret.
+                ta = txt.substring(pos, txt.length); // text after caret.
 
-            // text after cursor in textNode.
-            pivot = $(document.createTextNode(txt.substring(pos, txt.length)));
-            curNode.after(pivot);
+           if (tb != "" && ta != "") {
+                curNode.before(document.createTextNode(tb));
+                fPivot = document.createTextNode(ta);
+                D = curNode;
+            }
+
+            // if(tb == "" && ta == "") this case will never happen
+            // if(tb == "" && ta != "") no need to handle.
+            if(tb != "" && ta == "") {
+                fPivot = {};  // this serves the purpose of an empty element
+            }
 
         } else {
             /*
             * TODO: Handle case: "if no childNodes exists"
             * - Hopefully this will never occur, but if do just insert a blank textNode.
             * */
-            pivot = curNode = curNode.contents().eq(pos);
+            curNode = curNode.contents().eq(pos);
         }
 
-        // move siblings and parent siblings.
-        var parent, pars = curNode.parentsUntil(cBNode);
+
+        pivot = curNode;
+        var nod, prevE,
+            pars = curNode.parentsUntil(cBNode);
         pars.push(cBNode[0]);
+
+        // move siblings and parents siblings.
         pars.each(function(i, e){
-            parent = $(e).clone().empty();
-            parent.append(pivot);
-            while (pivot.next().length) {
-                parent.append(pivot.next());
+            nod = $(e).clone().empty();
+
+            var next = (prevE ? prevE : pivot[0]).nextSibling;
+            nod.append(fPivot ? fPivot : pivot);
+
+            while (next) {
+                var t = next.nextSibling;
+                nod.append(next);
+                next = t;
             }
-            pivot = parent;
+
+            pivot = nod;
+            prevE = e;
+            fPivot = 0;
         });
 
         // it will be good to remove at last.
         D?D.remove():0;
-        cBNode.after(parent);
+        cBNode.after(nod);
 
         if (cBNode.html().trim() === "") {
             cBNode.html('<br/>');
         }
-        if (parent.html().trim() === "") {
-            parent.html('<br/>');
+        if (nod.html().trim() === "") {
+            nod.html('<br/>');
         }
 
-        O.setCursorAtPos(parent, 0);
-        return parent;
+        O.setCursorAtPos(nod, 0);
+        return nod;
     };
 
     // wrap selection with unordered list
