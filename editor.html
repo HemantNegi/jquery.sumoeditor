@@ -42,6 +42,7 @@
         <div id="editor" placeholder="Type here ... ">
         </div>
 
+        <div class="markup"></div>
     <!-- dependancy js -->
     <script src="jquery-1.10.2.min.js"></script>
     <!-- easy editor core js -->
@@ -75,7 +76,13 @@
             new EasyEditor('#editor', {
                 buttons: ['bold', 'italic', 'link', 'ul', 'ol', 'quote', 'h2', 'h3', 'h4', 'imageurl']
             });
+
+            setInterval(function () {
+                $('.markup').text($('#editor').html());
+
+            }, 1000);
         });
+
     </script>
 
 </body>

@@ -52,7 +52,7 @@
         this.addToolbar();
         this.handleKeypress();
         this.handleResizeImage();
-        this.utils();
+        this.utils_();
 
         this.selection.elem = this.elem;
 
@@ -763,7 +763,7 @@
     };
 
     // utility of editor
-    EasyEditor.prototype.utils = function () {
+    EasyEditor.prototype.utils_ = function () {
         var self = this;
 
         $('html').delegate('.' + self.className + '-modal-close', 'click', function (event) {
@@ -994,12 +994,13 @@
         var settings = {
             buttonIdentifier: 'ulist',
             buttonHtml: 'UL',
-            blockName: 'ul',            // these will always be the first child of editor.
-            //removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
+            // blockName: 'ul',            // these will always be the first child of editor.
+            // removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
 
             clickHandler: function () {
-                // self.listHandler('ul');
+                self.listHandler('ul');
                 // document.execCommand('insertUnOrderedList', false, '');
+
             }
         };
 
@@ -1011,11 +1012,11 @@
         var settings = {
             buttonIdentifier: 'olist',
             buttonHtml: 'OL',
-            blockName: 'ol',            // these will always be the first child of editor.
+            // blockName: 'ol',            // these will always be the first child of editor.
             //removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
 
             clickHandler: function () {
-                // self.listHandler('ol');
+                self.listHandler('ol');
                 // document.execCommand('insertOrderedList', false, '');
             }
         };
@@ -1120,7 +1121,7 @@
         /*
         * A list of elements which we want to consider block elements (wtf :p)
         * */
-        BLOCK_ELEMENTS: {P:1, LI:1}, // using a map to keep lookup faster.
+        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, H1:1, H2:1, H3:1}, // using a map to keep lookup faster.
 
         /*
         * Aliased for get.
@@ -1247,9 +1248,9 @@
         getBlockNode: function(node) {
             var self = this,
                 _node = null,
-                parents = $(node).parentsUntil(this.elem).andSelf();
+                parents = $.merge([node], $(node).parentsUntil(this.elem));
 
-            parents.each(function (i, e) {
+            $.each(parents, function (i, e) {
                 // ignore text nodes.
                 if(e.nodeType == 3) return;
                 if (self.BLOCK_ELEMENTS[e.tagName.toUpperCase()]) {
@@ -1286,6 +1287,38 @@
         isInside: function (node) {
             return this.elem == node || $.contains(this.elem, node);
         },
+    };
+
+    /* Utility function goes here. */
+    EasyEditor.prototype.utils = {
+
+        /*
+        * Sets the empty character in a blank row.
+        * */
+        setBlank: function (e) {
+            if (e.html().trim() === "") {
+                e.html('<br/>');
+            }
+        },
+
+        /*
+        * replace the tag name of node.
+        * @param {Object} n jQuery dom node.
+        * @param {string} t the new node name.
+        * @returns {Object} then new DOM node.
+        * */
+        replaceTag: function (n, t) {
+            if(n.is(t)) return n;
+            if(n.is('li')) {
+                // TODO: implement list break at items.
+            }
+
+            var n_ = $('<'+ t +'>');
+            n_.html(n.contents());
+            n.after(n_);
+            n.remove();
+            return n_;
+        }
     };
 
     EasyEditor.prototype.isWrapped = function (tagName) {
@@ -1385,37 +1418,37 @@
         /*
          block: (string) valid name of tag to create
          */
-        var nodes = self.selection.preserve(function(mE){
-            mE = $(mE);
-            var elem;
-            if (mE.is(block)) {
-                // begin removing the block.
-                    elem = $('<p></p>').html(mE.contents());
-                    if (elem.text() == "") {
-                        elem.html('<br/>')
-                    }
 
-                    if(block === 'ul' || block == 'ol') {
-                        self.removeList();
-                    }
-                    else
-                    {
-                        mE.before(elem);
-                        mE.remove();
-                    }
+        // there may be discrepancy in selected nodes. as some of them may already be
+        // wrapped and some may not. So we use the state of first element to change
+        // the state of selection.
+        var r = null;
+
+        var nodes = self.selection.preserve(function(mE){
+
+            // if(block === 'ul' || block == 'ol') {
+            //     self.removeList()
+            // }
+            //
+            mE = $(mE);
+            r = r == null ? mE.is(block) : r;
+            var elem;
+            if (r) {
+                // begin removing the block.
+                elem = self.utils.replaceTag(mE, 'p');
+                self.utils.setBlank(elem);
             }
             else {
-                // begin adding the block..
-                if (block == 'ul' || block == 'ol'){
-                    elem = self.addList(block, mE);
-                }
-                else
-                {
+                console.log('inserting element');
+
+                // # NESTING
+                if(mE.is('li')){
                     elem = $('<' + block + '>');
-                    console.log('inserting element');
-                    mE.after(elem);
                     elem.append(mE.contents());
-                    mE.remove();
+                    mE.append(elem);
+                }
+                else {
+                    elem = self.utils.replaceTag(mE, block);
                 }
             }
 
@@ -1427,9 +1460,24 @@
         return null;
     };
 
-    // EasyEditor.prototype.listHandler = function (list){
-    //     document.execCommand('insertOrderedList', false, '');
-    // };
+    EasyEditor.prototype.listHandler = function (list){
+        var r = null, self = this;
+        var nodes = self.selection.preserve(function(mE){
+            mE = $(mE);
+            r = r == null ? mE.parent().is(list) : r;
+            var elem;
+            if(r){
+                // removing list
+                elem = self.removeList(list, mE);
+            }
+            else{
+                // adding list.
+                elem = self.addList(list, mE);
+            }
+
+            return elem[0];
+        });
+    };
     EasyEditor.prototype.addList = function(block, mE){
         var list, li = $('<li>').append(mE.contents());
 
@@ -1486,6 +1534,20 @@
             fPivot = 0, // first pivot.
             D;
 
+        // Case: When to exit from a block (i.e stop recreation).
+        // exception when, cBNode is immediate children of editor and is 'p'
+        if(cBNode.text() == "" &&
+            !(cBNode.is('p') && cBNode.parent().is(O.elem))){
+
+            var n = O.utils.replaceTag(cBNode, 'p');
+
+            if(cBNode.is('li')){
+
+            }
+            O.setCursorAtPos(n, 0);
+            return;
+        }
+
         // split content on caret position.
         if (rng.end.nodeType === 3) {
             var txt = curNode.text(),
@@ -1511,7 +1573,6 @@
             * */
             curNode = curNode.contents().eq(pos);
         }
-
 
         pivot = curNode;
         var nod, prevE,
@@ -1540,13 +1601,8 @@
         D?D.remove():0;
         cBNode.after(nod);
 
-        if (cBNode.html().trim() === "") {
-            cBNode.html('<br/>');
-        }
-        if (nod.html().trim() === "") {
-            nod.html('<br/>');
-        }
-
+        O.utils.setBlank(cBNode);
+        O.utils.setBlank(nod);
         O.setCursorAtPos(nod, 0);
         return nod;
     };
