@@ -17,7 +17,7 @@
      utils: {
      ... these functions are
      }
-
+    
      events: {
      }
 
@@ -218,16 +218,43 @@
         $(O.elem).keydown(function (e) {
 
             if (e.keyCode === 8) { // backspace,
+                
+                var blk = O.caret.getBlock(1),
+                    node = $(blk.node),
+                    pos = blk.pos,
+                    pd = 0; // flag to e.preventDefault();
 
-                var node = O.getNode() //.parentsUntil(O.elem).andSelf().first();
+                // CASE: list concatenation when pressing backspace in between two lists.
+                if(node.text() === '' && pos === 0){
+
+                    pd = 1;
+                    // CASE: backspace pressed at the beginning of list item.
+                    if(node.is('li')){
+                        var n = window.tmpUtils.unList(node, 'p');
+                        O.setCursorAtPos(n,0);
+                    }
+
+                    // CASE: Join lists on removal of blank line between two lists
+                    else if (window.tmpUtils.joinList(node)){
+
+                    }
+                    else{
+                        pd = 0;
+                    }
+                }
+
+
+                // needs refactoring.
+                var node = O.getNode(); //.parentsUntil(O.elem).andSelf().first();
                 var pos = O.getCursorPos(node);
+                
                 if (pos == 0) {
                     // replace tags(O.bk_re) with <p>.
                     var _node = node[0];
                     if (_node.nodeType == 3 && !_node.previousSibling) node = node.parent();
                     for (var i = 0; i < O.bk_re.length; i++) {
                         if (node.is(O.bk_re[i])) {
-                            e.preventDefault();
+                            pd=1;
                             var ne = $('<p></p>');
                             ne.prepend(node.contents());
                             node.before(ne);
@@ -239,8 +266,8 @@
 
                 }
 
-
-
+                if (pd) e.preventDefault();
+                
                 console.log('== backspace pressed == pos: ', pos, '  Node: ', node.prop('tagName'));
 
             }
@@ -290,6 +317,7 @@
         return $(this.elem).is(node) || $.contains(this.elem, node);
     };
 
+    // tries to return a text node.
     EasyEditor.prototype.getNode = function () {
         var sel = window.getSelection();
         var node = sel.anchorNode;
@@ -1013,7 +1041,7 @@
             buttonIdentifier: 'olist',
             buttonHtml: 'OL',
             // blockName: 'ol',            // these will always be the first child of editor.
-            //removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
+            //removeOnBackSpace: true,    // TODO: for lists - force remove this tag on backspace and wrap in P.
 
             clickHandler: function () {
                 self.listHandler('ol');
@@ -1115,13 +1143,22 @@
     };
 
     /* Actually useful code */
-    EasyEditor.prototype.selection = {
+    var tmpSel = EasyEditor.prototype.selection = {
         // REF: https://stackoverflow.com/questions/7781963/js-get-array-of-all-selected-nodes-in-contenteditable-div
 
         /*
         * A list of elements which we want to consider block elements (wtf :p)
         * */
         BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, H1:1, H2:1, H3:1}, // using a map to keep lookup faster.
+
+        /*
+        * @type {{
+        *   start: Object.<DOM Node>, so: number,
+        *   end: Object.<DOM Node>, eo: number
+        *  }}
+        *  a custom interpretation of range object.
+        * */
+        rng: null,
 
         /*
         * Aliased for get.
@@ -1149,7 +1186,7 @@
             return this.pull().nodes;
         },
 
-        getNode: function () {
+/*        getNode: function () {
             var sel = window.getSelection();
             var node = sel.anchorNode;
 
@@ -1169,7 +1206,7 @@
             }
 
             return $(node)
-        },
+        },*/
 
         /*
         * Aliased for range
@@ -1243,10 +1280,12 @@
         /*
         * gets a parent block element(elements in object BLOCK_ELEMENTS) OR
         * immediate children of editor containing node.
-        * @returns Object.<DOM Element>
+        * @param {Object=} node parent DOM block node.
+        * @returns {Object.<DOM Element>}
         * */
         getBlockNode: function(node) {
             var self = this,
+                //node = node || self.getRange()
                 _node = null,
                 parents = $.merge([node], $(node).parentsUntil(this.elem));
 
@@ -1258,7 +1297,7 @@
                     return false;
                 }
             });
-            return _node ? _node: parents[0];
+            return _node || parents[0];
         },
 
         /*
@@ -1288,9 +1327,70 @@
             return this.elem == node || $.contains(this.elem, node);
         },
     };
+    
+    /*
+    * object contains Caret related operations.
+    * */
+    EasyEditor.prototype.caret = {
+
+        /*
+        * @param {boolean=} pos whether to return position of caret wrt block node. default is false.
+        * @returns {Object} the closest block node to cursor.
+        * */
+        getBlock: function (pos) {
+            var rng = tmpSel.getRange(),
+                n = tmpSel.getBlockNode(rng.start);
+            if (pos) {
+                var p = this.getPos(n, rng);
+                /*
+                * @typedef {object.<node: <DOM Node>, pos: number>} blk
+                * represents a block node and cursor position inside it.
+                * */
+                return {
+                    node: n,
+                    pos: p
+                }
+            }
+            else{
+                return n;
+            }
+        },
+
+        /*
+        * gets the caret position w.r.t. given node.
+        * @param {Object.<DOM Node>} node
+        * @param {Object.<>=} rng
+        * @returns {number} caret position.
+        * */
+        getPos: function (node, rng) {
+            rng = rng || tmpSel.getRange();
+            var c = rng.so,
+                s = rng.start;
+
+            if (node == s || $(node).find(s).length > 0) {
+
+                while (s) {
+                    if (node == s) break;
+
+                    if (s.previousSibling) {
+                        s = s.previousSibling;
+                        c += s.textContent.length;
+                    } else {
+                        s = s.parentNode;
+
+                        // just a fail safe if anything unpredictable happens to avoid infinite loop.
+                        if (s === null) break;
+                    }
+                }
+            }
+
+            return c;
+        }
+
+    };
 
     /* Utility function goes here. */
-    EasyEditor.prototype.utils = {
+    window.tmpUtils = EasyEditor.prototype.utils = {
 
         /*
         * Sets the empty character in a blank row.
@@ -1310,7 +1410,7 @@
         replaceTag: function (n, t) {
             if(n.is(t)) return n;
             if(n.is('li')) {
-                // TODO: implement list break at items.
+                return this.unList(n, t);
             }
 
             var n_ = $('<'+ t +'>');
@@ -1318,7 +1418,61 @@
             n.after(n_);
             n.remove();
             return n_;
-        }
+        },
+
+        /*
+        * Removes given list item from list and put its content in an appropriate container.
+        * @param {Object} li the jQuery instance of list item.
+        * @param {string} t new tag to move content to.
+        * @returns {Object} The newly created DOM object.
+        * */
+        unList: function (li, t) {
+            var elem = $('<'+ t +'>').html(li.contents()),
+                lst = li.parent();
+
+            // handling list split when cursor is on non edge li.
+            if (li.is(':first-child')) {
+                lst.before(elem);
+            }
+            else if (li.is(':last-child')) {
+                lst.after(elem);
+            }
+            else {
+                // create a new list for previous li's
+                lst.before(
+                    lst.clone().empty().prepend(li.prevAll().get().reverse())  // :D Love jQuery.
+                );
+                lst.before(elem);
+            }
+
+            li.remove();
+            if (!lst.children().length) {
+                lst.remove();
+            }
+            return elem;
+        },
+
+        /*
+        * Join two same type of lists that are separated by a blank line (node)
+        * @param {Object.<jQuery DOM node>} node.
+        * @returns {boolean} status if lists joined or not
+        * */
+        joinList: function (node) {
+            if ((node.prev().is('ol') && node.next().is('ol')) ||
+                    (node.prev().is('ul') && node.next().is('ul'))) {
+                var prev = node.prev(),
+                    next = node.next(),
+                    li = prev.children().last();
+
+                prev.append(next.children());
+                node.remove();
+                next.remove();
+
+                window.tmpsetCursorAtPos(li, li.text().length);
+                return !0;
+            }
+            return !1;
+        },
     };
 
     EasyEditor.prototype.isWrapped = function (tagName) {
@@ -1338,7 +1492,7 @@
         if (n.is('ul')) n = $(p[1]);
         return n;
     };
-    EasyEditor.prototype.setCursorAtPos = function (E, pos) {
+    window.tmpsetCursorAtPos = EasyEditor.prototype.setCursorAtPos = function (E, pos) {
         // ref: https://stackoverflow.com/questions/6249095/how-to-set-caretcursor-position-in-contenteditable-element-div
         var createRange = function (node, chars, range) {
             if (!range) {
@@ -1425,11 +1579,6 @@
         var r = null;
 
         var nodes = self.selection.preserve(function(mE){
-
-            // if(block === 'ul' || block == 'ol') {
-            //     self.removeList()
-            // }
-            //
             mE = $(mE);
             r = r == null ? mE.is(block) : r;
             var elem;
@@ -1468,7 +1617,8 @@
             var elem;
             if(r){
                 // removing list
-                elem = self.removeList(list, mE);
+                // TODO: can check if list is ul or ol and then pass that list. #NESTED.
+                elem = self.utils.unList(mE, 'p');
             }
             else{
                 // adding list.
@@ -1478,46 +1628,25 @@
             return elem[0];
         });
     };
-    EasyEditor.prototype.addList = function(block, mE){
-        var list, li = $('<li>').append(mE.contents());
+    EasyEditor.prototype.addList = function(block, mE) {
+        var elem = $('<li>').append(mE.contents());
 
         // if there is a ul/ol already before/after append to existing list.
         // Set priority accordingly.
-        if(mE.prev().is(block))
-            list = mE.prev();
-        else if(mE.next().is(block))
-            list = mE.prev();
-        else
-            list = $('<' + block + '>');
-
-        list.append(li);
-        mE.before(list);
-        mE.remove();
-        return list;
-    };
-    EasyEditor.prototype.removeList = function (block, pB) {
-        // handle list split when cursor is on non edge li.
-        var ul = mE.parent();
-        if (mE.is(':first-child')) {
-            ul.before(elem);
+        if (mE.prev().is(block)) {
+            mE.prev().append(elem);
+            this.utils.joinList(mE); // :P just fits here.
         }
-        else if (mE.is(':last-child')) {
-            ul.after(elem);
+        else if (mE.next().is(block)) {
+            mE.next().prepend(elem);
         }
         else {
-            // create a new list for previous li's
-            ul.before(
-                ul.clone()
-                    .empty()
-                    .append(mE.prevAll())
-            );
-            ul.before(elem);
+            elem = $('<' + block + '>').append(elem);
+            mE.before(elem);
         }
 
         mE.remove();
-        if (!ul.children('li').length) {
-            ul.remove();
-        }
+        return elem
     };
 
     /*
@@ -1538,12 +1667,8 @@
         // exception when, cBNode is immediate children of editor and is 'p'
         if(cBNode.text() == "" &&
             !(cBNode.is('p') && cBNode.parent().is(O.elem))){
-
+            // #NESTING
             var n = O.utils.replaceTag(cBNode, 'p');
-
-            if(cBNode.is('li')){
-
-            }
             O.setCursorAtPos(n, 0);
             return;
         }
