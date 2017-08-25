@@ -208,6 +208,8 @@
         });
         //focusout
         $(O.elem).on('keyup click', function (evt) {
+
+            // #HISTORY
             var node = O.getNode().parentsUntil(O.elem).andSelf().first();
             var n = O.getCursorPos(node);
             O.currentElement = node;
@@ -216,8 +218,15 @@
         });
 
         $(O.elem).keydown(function (e) {
-
-            if (e.keyCode === 8) { // backspace,
+            if (e.ctrlKey) {
+                // handling ctrl + a to fix selection issue.
+                if (e.keyCode == 65 || e.keyCode == 97) { // 'A' or 'a'
+                    console.log("Control + A handled");
+                    O.selection.selectAll();
+                    e.preventDefault();
+                }
+            }
+            else if (e.keyCode === 8) { // backspace,
                 
                 var blk = O.caret.getBlock(1),
                     node = $(blk.node),
@@ -1149,16 +1158,7 @@
         /*
         * A list of elements which we want to consider block elements (wtf :p)
         * */
-        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, H1:1, H2:1, H3:1}, // using a map to keep lookup faster.
-
-        /*
-        * @type {{
-        *   start: Object.<DOM Node>, so: number,
-        *   end: Object.<DOM Node>, eo: number
-        *  }}
-        *  a custom interpretation of range object.
-        * */
-        rng: null,
+        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, H1:1, H2:1, H3:1, H4:1}, // using a map to keep lookup faster.
 
         /*
         * Aliased for get.
@@ -1241,14 +1241,17 @@
                 }*/
 
                 // firefox case: pressing ctrl + a selects editor container also.
+                /*
+                I think we don't need this check now as we have handled ctrl + A
                 if(rng.start == this.elem && rng.end == this.elem){
+                    debugger;
                     var cn = this.elem.childNodes;
                     rng.start = cn[0];
                     rng.end = cn[cn.length-1];
                     rng.so = 0;
                     // usually rng.end should not be a text node but just a sanity check,
                     rng.eo = rng.end.nodeType == 3 ? rng.end.length : rng.end.childNodes.length;
-                }
+                }*/
                 return rng;
 
             }else{
@@ -1326,6 +1329,22 @@
         isInside: function (node) {
             return this.elem == node || $.contains(this.elem, node);
         },
+
+        /*
+        * Selects all text inside editor.
+        * */
+        selectAll: function () {
+            var txts = window.tmpUtils.textNodes(this.elem);
+            if (txts.length > 0) {
+                var last = txts[txts.length - 1];
+                this.setRange({
+                    start: txts[0],
+                    end: last,
+                    so: 0,
+                    eo: last.length
+                });
+            }
+        }
     };
     
     /*
@@ -1440,7 +1459,7 @@
             else {
                 // create a new list for previous li's
                 lst.before(
-                    lst.clone().empty().prepend(li.prevAll().get().reverse())  // :D Love jQuery.
+                    lst.clone().empty().append(li.prevAll().get().reverse())  // :D Love jQuery.
                 );
                 lst.before(elem);
             }
@@ -1473,6 +1492,42 @@
             }
             return !1;
         },
+
+        /*
+        * Gets all text nodes inside the given Element `E`
+        * @param {Object.<DOM Node>} E
+        * @returns {Array.<Object>} text nodes in in-order traversal.
+        * */
+        textNodes: function (E) {
+            function tNodes(piv, txts){
+                var c = piv.childNodes;
+                for (var i=0; i<c.length; i++){
+                    if (c[i].nodeType === 3) {
+                        txts.push(c[i]);
+                    } else {
+                        txts = tNodes(c[i], txts);
+                    }
+                }
+                return txts
+            }
+            return tNodes(E, []);
+        },
+
+        /*
+        * checks if `tag` is `e` or is an ancestor of `e`
+        * @param {Object.<DOM Node>} e
+        * @param {string} tag
+        * @returns {boolean||Object<DOM Node>} false if ancestor not found else returns ancestor.
+        * */
+        ancestorIs: function (e, tag) {
+            while(e && e != $('#editor')[0]){
+                if(e.tagName.toUpperCase() === tag.toUpperCase()){
+                    return e;
+                }
+                e = e.parentElement;
+            }
+            return !1;
+        }
     };
 
     EasyEditor.prototype.isWrapped = function (tagName) {
@@ -1611,24 +1666,37 @@
 
     EasyEditor.prototype.listHandler = function (list){
         var r = null, self = this;
-        var nodes = self.selection.preserve(function(mE){
-            mE = $(mE);
-            r = r == null ? mE.parent().is(list) : r;
+        var nodes = self.selection.preserve(function(el){
+            // el = $(el);
+            // r = r == null ? el.parent().is(list) : r;
+
+            // if any of the ancestor is already a list, take that li.
+            el = $(self.utils.ancestorIs(el, 'li') || el);
+            r = r == null ? el.parent().is(list) : r;
+            // r = r == null ? self.utils.ancestorIs(el, list) : r;
+            // el = $(el);
             var elem;
             if(r){
                 // removing list
                 // TODO: can check if list is ul or ol and then pass that list. #NESTED.
-                elem = self.utils.unList(mE, 'p');
+                elem = self.utils.unList(el, 'p');
             }
             else{
                 // adding list.
-                elem = self.addList(list, mE);
+                elem = self.addList(list, el);
             }
 
             return elem[0];
         });
     };
     EasyEditor.prototype.addList = function(block, mE) {
+
+        // if there is already a list of different type. then just change the type.
+        if (mE.is('li')){
+            this.utils.replaceTag(mE.parent(), block);
+            return mE;
+        }
+
         var elem = $('<li>').append(mE.contents());
 
         // if there is a ul/ol already before/after append to existing list.
@@ -1641,8 +1709,9 @@
             mE.next().prepend(elem);
         }
         else {
-            elem = $('<' + block + '>').append(elem);
-            mE.before(elem);
+            mE.before(
+                $('<' + block + '>').append(elem)
+            );
         }
 
         mE.remove();
