@@ -239,7 +239,7 @@
                     pd = 1;
                     // CASE: backspace pressed at the beginning of list item.
                     if(node.is('li')){
-                        var n = window.tmpUtils.unList(node, 'p');
+                        var n = window.tmpUtils.unList(node);
                         O.setCursorAtPos(n,0);
                     }
 
@@ -264,11 +264,12 @@
                     for (var i = 0; i < O.bk_re.length; i++) {
                         if (node.is(O.bk_re[i])) {
                             pd=1;
-                            var ne = $('<p></p>');
+                            var ne = O.utils.replaceTag(node, 'p')
+                            /*var ne = $('<p></p>');
                             ne.prepend(node.contents());
                             node.before(ne);
                             node.remove();
-                            ne = ne.contents().first() || ne;
+                            ne = ne.contents().first() || ne;*/
                             O.setCursorAtPos(ne, 0);
                         }
                     }
@@ -1429,7 +1430,7 @@
         replaceTag: function (n, t) {
             if(n.is(t)) return n;
             if(n.is('li')) {
-                return this.unList(n, t);
+                return this.unList(n);
             }
 
             var n_ = $('<'+ t +'>');
@@ -1441,12 +1442,13 @@
 
         /*
         * Removes given list item from list and put its content in an appropriate container.
-        * @param {Object} li the jQuery instance of list item.
+        * @param {Object.<jQuery DOM element>} li the jQuery instance of list item.
         * @param {string} t new tag to move content to.
-        * @returns {Object} The newly created DOM object.
+        * @returns {Object.<jQuery DOM element>} The newly created DOM object.
         * */
-        unList: function (li, t) {
-            var elem = $('<'+ t +'>').html(li.contents()),
+        unList: function (li) {
+
+            var elem = this.sanitizeContent(li),
                 lst = li.parent();
 
             // handling list split when cursor is on non edge li.
@@ -1468,7 +1470,9 @@
             if (!lst.children().length) {
                 lst.remove();
             }
-            return elem;
+
+            // just pass last node, hopefully.
+            return $(elem[elem.length - 1]);
         },
 
         /*
@@ -1527,6 +1531,28 @@
                 e = e.parentElement;
             }
             return !1;
+        },
+
+        /*
+        * Make content safe inside the given tag, for tag removal.
+        * Mainly it wraps textNodes in a <p> element.
+        * @param {Object.<jQuery DOM element>} $n
+        * @returns {Array.<elements>}
+        * */
+        sanitizeContent: function ($n) {
+            var elms = [], p=0;
+            $n.contents().each(function(_, e){
+                if((e.nodeType === 3 && e.textContent) || $(e).is('br')){
+                    p = p || $('<p>');
+                    p.append(e);
+                } else {
+                    if(p) elms.push(p[0]);
+                    p = 0;
+                    elms.push(e);
+                }
+            });
+            if(p) elms.push(p[0]);
+            return elms;
         }
     };
 
@@ -1679,7 +1705,7 @@
             if(r){
                 // removing list
                 // TODO: can check if list is ul or ol and then pass that list. #NESTED.
-                elem = self.utils.unList(el, 'p');
+                elem = self.utils.unList(el);
             }
             else{
                 // adding list.
@@ -1719,8 +1745,7 @@
     };
 
     /*
-    * This was implemented because we want to create the same element after this element, and not insert <br>
-    * in same tag.
+    * Breaks line at cursor position ans also handles many scenarios.
     * */
     EasyEditor.prototype.breakLine = function () {
         var O = this,
@@ -1737,13 +1762,25 @@
         if(cBNode.text() == "" &&
             !(cBNode.is('p') && cBNode.parent().is(O.elem))){
             // #NESTING
-            var n = O.utils.replaceTag(cBNode, 'p');
-            O.setCursorAtPos(n, 0);
-            return;
+
+            // Case: when there is an empty p inside a li. we need to create a new li.
+            if(cBNode.is('p') && cBNode.parent().is('li')) {
+                var li_ = cBNode.parent();
+                cBNode.remove();
+                curNode = cBNode = li_;
+                fPivot = {};
+                pos = cBNode.contents().length - 1;
+
+            } else {
+                // Case: Stop recreation of elements, this time we will skip enter press.
+                var n = O.utils.replaceTag(cBNode, 'p');
+                O.setCursorAtPos(n, 0);
+                return n;
+            }
         }
 
         // split content on caret position.
-        if (rng.end.nodeType === 3) {
+        if (curNode[0].nodeType === 3) {
             var txt = curNode.text(),
                 tb = txt.substring(0, pos),          // text before caret.
                 ta = txt.substring(pos, txt.length); // text after caret.
