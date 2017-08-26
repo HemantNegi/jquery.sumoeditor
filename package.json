@@ -1,0 +1,42 @@
+{
+  "name": "jquery-sumoeditor",
+  "version": "1.0.1",
+  "description": "A powerful, rich text editor for web content creation",
+// "homepage": "http://jqueryboilerplate.com",
+  "keywords": [
+    "jquery",
+    "sumoeditor",
+    "text editor",
+    "rich text",
+    "wysiwyg"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HemantNegi/jquery.sumoeditor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/HemantNegi/jquery.sumoeditor/issues"
+  },
+  "author": {
+    "name": "Hemant Negi",
+    "email": "hemant.frnz@gmail.com",
+    "url": "https://github.com/HemantNegi"
+  },
+  "contributors": [
+    {
+      "name": "Hemant Negi",
+      "email": "hemant.frnz@gmail.com",
+      "url": "https://github.com/HemantNegi"
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "jquery": ">=1.5.1"
+  },
+  "devDependencies": {
+    "standard": "*"
+  },
+  "scripts": {
+    "test": "standard && node my-tests.js"
+  }
+}

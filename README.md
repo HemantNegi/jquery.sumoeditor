@@ -38,3 +38,6 @@ NOTE: selection.anchorOffset and range.startOffset can be same if selection begi
       selection.focusOffset and range.endContainer.
 
 here in sumo editor we rely on range
+
+## REFERENCES:
+Boilerplate code for jquery plugin - https://github.com/jquery-boilerplate/jquery-boilerplate
