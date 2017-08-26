@@ -7,9 +7,7 @@
  * http://www.opensource.org/licenses/MIT
  */
 
-
 ;(function ($, window, document, undefined) {
-
     // our plugin constructor
     var Plugin = function (elem, options) {
         this.elem = elem;
@@ -20,21 +18,20 @@
         // to support customization of the plugin on a per-element
         // basis. For example,
         // <div class=item' data-plugin-options='{"message":"Goodbye World!"}'></div>
-        this.metadata = this.$elem.data("plugin-options");
-
-    };
+        this.metadata = this.$elem.data('plugin-options')
+    }
 
     // the plugin prototype
     Plugin.prototype = {
         defaults: {
-            message: "Hello world!"
+            message: 'Hello world!'
         },
 
         init: function () {
             // Introduce defaults that can be extended either
             // globally or using an object literal.
             this.config = $.extend({}, this.defaults, this.options,
-                this.metadata);
+                this.metadata)
 
             // Sample usage:
             // Set the message per instance:
@@ -45,24 +42,23 @@
             // or, set the global default message:
             // Plugin.defaults.message = 'Goodbye World!'
 
-            this.sampleMethod();
-            return this;
+            this.sampleMethod()
+            return this
         },
 
         sampleMethod: function () {
             // eg. show the currently configured message
             // console.log(this.config.message);
         }
-    };
+    }
 
-    Plugin.defaults = Plugin.prototype.defaults;
+    Plugin.defaults = Plugin.prototype.defaults
 
     $.fn.plugin = function (options) {
         return this.each(function () {
-            new Plugin(this, options).init();
-        });
-    };
+            new Plugin(this, options).init()
+        })
+    }
 
-    //optional: window.Plugin = Plugin;
-
-})(jQuery, window, document);
+    // optional: window.Plugin = Plugin;
+})(jQuery, window, document)

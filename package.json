@@ -2,7 +2,7 @@
   "name": "jquery-sumoeditor",
   "version": "1.0.1",
   "description": "A powerful, rich text editor for web content creation",
-// "homepage": "http://jqueryboilerplate.com",
+  "homepage": "https://github.com/HemantNegi/jquery.sumoeditor",
   "keywords": [
     "jquery",
     "sumoeditor",
@@ -34,7 +34,11 @@
     "jquery": ">=1.5.1"
   },
   "devDependencies": {
-    "standard": "*"
+    "eslint-config-standard": "^10.2.1",
+    "eslint-config-standard-jsx": "^4.0.2",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-react": "^7.3.0",
+    "eslint-plugin-standard": "^3.0.1"
   },
   "scripts": {
     "test": "standard && node my-tests.js"
