@@ -8,57 +8,165 @@
  */
 
 ;(function ($, window, document, undefined) {
-    // our plugin constructor
-    var Plugin = function (elem, options) {
-        this.elem = elem;
-        this.$elem = $(elem);
-        this.options = options;
+    'use strict';
 
-        // This next line takes advantage of HTML5 data attributes
-        // to support customization of the plugin on a per-element
-        // basis. For example,
-        // <div class=item' data-plugin-options='{"message":"Goodbye World!"}'></div>
-        this.metadata = this.$elem.data('plugin-options')
+    var Editor = function (elem, opts) {
+        var O = this;
+
+        O.$e = $(elem);
+        O.opts = opts;
+        O.$wrapper = O.$e.wrap('<div class="sumoeditor">')
+            .parent()
+            .addClass(O.$e.attr('name'));
+        O.$toolbar = $('<div class="toolbar">');
+        O.$editor = $('<div class="editor" contenteditable="true" tab-index="1">');
+        O.editor = O.$editor;
+
+        O.$wrapper.append([O.$toolbar, O.$editor]);
+
+        /*TODO: Remove this block*/
+        O.$wrapper.after(O.$e);
     }
 
-    // the plugin prototype
-    Plugin.prototype = {
+    Editor.prototype = {
         defaults: {
-            message: 'Hello world!'
+            toolbar: [
+                ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
+                ['quote', 'code-block'],
+
+                [{'header': 1}, {'header': 2}],               // custom button values
+                ['ol', 'ul', 'indent', 'unindent', 'sub', 'sup'],
+                [{'direction': 'rtl'}],                         // text direction
+
+                [{'size': ['small', false, 'large', 'huge']}],  // custom dropdown
+                [{'header': [1, 2, 3, 4, 5, 6, false]}],
+
+                [{'color': []}, {'background': []}],          // dropdown with defaults from theme
+                [{'font': []}],
+                [{'align': []}],
+
+                ['clean']                                         // remove formatting button
+            ]
         },
 
         init: function () {
             // Introduce defaults that can be extended either
             // globally or using an object literal.
-            this.config = $.extend({}, this.defaults, this.options,
-                this.metadata)
+            this.config = $.extend(this.defaults, this.opts);
 
-            // Sample usage:
-            // Set the message per instance:
-            // $('#elem').plugin({ message: 'Goodbye World!'});
-            // or
-            // var p = new Plugin(document.getElementById('elem'),
-            // { message: 'Goodbye World!'}).init()
-            // or, set the global default message:
-            // Plugin.defaults.message = 'Goodbye World!'
 
-            this.sampleMethod()
+            this.setToolbar();
+
             return this
         },
 
-        sampleMethod: function () {
-            // eg. show the currently configured message
-            // console.log(this.config.message);
+        /*
+         * Parse config.toolbar options and populate buttons in toolbar.
+         * */
+        setToolbar: function () {
+            var O = this,
+                parseBtns = function (tools, $bar) {
+                    tools.forEach(function (obj) {
+                        if (typeof(obj) == 'string' && O.buttons[obj] /*TODO: Remove this check*/) {
+                            var def = O.buttons[obj].call(O),
+                                btn = O.createButton(def);
+                            $bar.append(btn);
+                        }
+                        else if (Array.isArray(obj)) {
+                            var $grp = $('<span class="grp">');
+                            $bar.append($grp);
+                            parseBtns(obj, $grp);
+                        }
+                        else if (obj && typeof obj === 'object') {
+
+                        }
+                        else {
+                            console.error('undefined toolbar object: ', obj);
+                        }
+                    })
+                }
+            parseBtns(O.config.toolbar, O.$toolbar);
+        },
+
+        createButton: function (def) {
+            return $('<button>').addClass('sumo-' + def.ico);
         }
+
     }
 
-    Plugin.defaults = Plugin.prototype.defaults
+    Editor.prototype.buttons = {
+        quote: function () {
+            return {
+                ico: 'quote',
+                buttonIdentifier: 'quote',  // selector
+                buttonHtml: 'Quote',        // caption value
+                // type: 'block',
+                // breakOnEnter: False,
+                blockName: 'blockquote',    // these will always be the first child of editor.
+                removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
+                clickHandler: function () {
+                }
+            }
+        },
+        bold:function () {
+            return {
+                ico:'bold'
+            }
+        },
+        italic:function () {
+            return {
+                ico:'italic'
+            }
+        },
+        underline:function () {
+            return {
+                ico:'underline'
+            }
+        },
+        strike:function () {
+            return {
+                ico:'strike'
+            }
+        },
+        ol:function () {
+            return {ico:'ol' }
+        },
+        ul:function () {
+            return {ico:'ul' }
+        },
+        indent:function () {
+            return {ico:'indent' }
+        },
+        unindent:function () {
+            return {ico:'unindent' }
+        },
+        sub:function () {
+            return {ico:'sub' }
+        },
+        sup:function () {
+            return {ico:'sup' }
+        },
 
-    $.fn.plugin = function (options) {
-        return this.each(function () {
-            new Plugin(this, options).init()
-        })
+
+
     }
 
-    // optional: window.Plugin = Plugin;
+    // Editor.defaults = Editor.prototype.defaults
+
+    /*
+     * Binds editor to matched set of nodes.
+     * @return {Object.<Editor> || Array.<Object.<Editor>>}
+     * */
+    $.fn.sumoeditor = function (opts) {
+        var instance = [];
+        this.each(function () {
+            if (!this.sumoeditor)
+                this.sumoeditor = new Editor(this, opts).init()
+            instance.push(this.sumoeditor);
+        });
+        return instance.length == 1 ? instance[0] : instance;
+    }
+
+    //window.Editor = Editor;
 })(jQuery, window, document)
+
