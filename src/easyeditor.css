@@ -48,7 +48,7 @@
 .sumo-bold:before {
   content: "\68";
 }
-.sumo-clear:before {
+.sumo-clean:before {
   content: "\69";
 }
 .sumo-background:before {
@@ -115,6 +115,11 @@
 /* ====== SUMOEDITOR STYLES ====== */
 .sumoeditor{
 }
+.sumoeditor *{
+    margin: 0;
+    padding: 0;
+    outline: 0;
+}
 .sumoeditor .toolbar{
     border: 1px solid #ccc;
     padding: 8px;
@@ -132,7 +137,28 @@
 .sumoeditor .editor{
     border: 1px solid #ccc;
     border-top: none;
-    padding: 10px;
+    padding: 10px 20px;
     min-height: 66px;
     height: 100%;
+}
+
+/* Content styling */
+.editor p {
+    margin-bottom: 10px;
+}
+.editor blockquote {
+    border-left: 4px solid #ccc;
+    margin-bottom: 10px;
+    margin-top: 10px;
+    padding-left: 15px;
+}
+.editor ol {
+    list-style-type: decimal;
+    margin: 1em 0;
+    padding-left: 40px;
+}
+.editor ul {
+    list-style-type: disc;
+    margin: 1em 0;
+    padding-left: 40px;
 }

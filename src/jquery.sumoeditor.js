@@ -20,11 +20,14 @@
             .addClass(O.$e.attr('name'));
         O.$toolbar = $('<div class="toolbar">');
         O.$editor = $('<div class="editor" contenteditable="true" tab-index="1">');
-        O.editor = O.$editor;
+        O.editor = O.$editor[0];
 
         O.$wrapper.append([O.$toolbar, O.$editor]);
 
         /*TODO: Remove this block*/
+        if (!O.$editor.find('p').length && O.$editor.text().trim() === '') {
+            O.$editor.html('<p><br /></p>');
+        }
         O.$wrapper.after(O.$e);
     }
 
@@ -32,7 +35,7 @@
         defaults: {
             toolbar: [
                 ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
-                ['quote', 'code-block'],
+                ['quote', 'code'],
 
                 [{'header': 1}, {'header': 2}],               // custom button values
                 ['ol', 'ul', 'indent', 'unindent', 'sub', 'sup'],
@@ -49,13 +52,17 @@
             ]
         },
 
+
         init: function () {
             // Introduce defaults that can be extended either
             // globally or using an object literal.
             this.config = $.extend(this.defaults, this.opts);
 
+            // initialize modules.
+            this.selection.O = this.caret.O = this.utils.O = this;
 
             this.setToolbar();
+            this.bindEvents();
 
             return this
         },
@@ -89,65 +96,929 @@
         },
 
         createButton: function (def) {
-            return $('<button>').addClass('sumo-' + def.ico);
-        }
+            var O = this,
+                btn = $('<button>').addClass('sumo-' + def.ico);
 
+            btn.on('click', function (evt) {
+                evt.preventDefault();
+
+                if(typeof def.onclick === 'function')
+                    def.onclick.call(this);
+
+                switch (def.typ) {
+                case 'block':
+                    // self.currentElement = self.addRemoveBlock(self, settings.blockName);
+                    O.toggleBlock.call(O, def.tag);
+                    break;
+                case 'inline':
+                    break;
+
+                }
+            })
+
+            return btn;
+        },
+
+        /*
+        * Binds all the required necessary events to editor.
+        * */
+        bindEvents: function () {
+            var O = this;
+
+            // listen to dom changes inside editor.
+            O.utils.domObserver(O.editor, function () {
+                console.log('dom changed');
+
+                // CASE: remove div elements, as we never want them.
+                O.$editor.find('div').each(function () {
+                    $(this).contents().unwrap('div');
+                });
+
+                // CASE: There must always be a p element present in the editor if its empty.
+                if (!O.$editor.children(':not(br)').length) {
+                    O.$editor.find('br').remove();
+                    O.utils.newLine(O.$editor);
+                }
+
+                // wrap any orphan text nodes in <p>
+               /* $('#editor').contents().each(function(i, e){
+                    if($(e).is('br')) $(e).remove();
+                    if(e.nodeType == 3 && $(e).text() != ""){
+                        var p = $('<p></p>');
+                        p.insertBefore(e);
+                        p.append(e)
+                    }
+                });
+               */
+
+            });
+
+            // caret position update.
+            O.$editor.on('keyup click', function (evt) {
+                // #HISTORY
+                // var node = O.getNode().parentsUntil(O.elem).andSelf().first();
+                // var n = O.getCursorPos(node);
+                // O.currentElement = node;
+                // O.cursorPos = n;
+                // console.log('pos: ', n, 'node: ', node);
+            });
+
+            // handle key presses.
+            O.$editor.on('keydown', function (e) {
+                // flag to e.preventDefault();
+                var pd = !1;
+
+                if (e.ctrlKey) {
+                    pd = O.ctrlKeyPress(e.keyCode);
+                }
+                else if (e.keyCode === 8) {
+                    pd = O.backSpacePress();
+                }
+                else if (e.keyCode === 13 && e.shiftKey !== true) {
+                    pd = O.breakLine();
+                }
+
+                if(pd) {
+                    e.preventDefault();
+                    return !1;
+                }
+            });
+
+            // handle text pasting.
+            O.$editor.on('paste', function (e) {
+                e.preventDefault();
+                var text = e.originalEvent.clipboardData.getData('text/plain').replace(/\n/ig, '<br>');
+                // TODO: Replace with insert text atCaretPosition.
+                document.execCommand('insertHTML', false, text);
+            });
+        },
+
+        /*
+        * Handle ctrl Key press inside editor.
+        * @param {number} key keycode for the pressed key.
+        * @return {boolean} to preventDefault or not.
+        * */
+        ctrlKeyPress: function (key) {
+            var O = this;
+
+            // CASE: handle ctrl + a to fix selection issue.
+            if (key == 65 || key == 97) { // 'A' or 'a'
+                O.selection.selectAll();
+                return !0;
+            }
+        },
+
+        /*
+        * Handles keypress for backspace key.
+        * @return {boolean} to preventDefault or not.
+        * */
+        backSpacePress: function () {
+            var O = this,
+                blk = O.caret.getBlock(1),
+                $n = $(blk.node),
+                pos = blk.pos,
+                pd = !1; // flag to e.preventDefault();
+
+            // handle list concatenation when pressing backspace in between two lists.
+            if($n.text() === '' && pos === 0){
+                if($n.is('li')){
+                    // CASE: backspace pressed at the beginning of list item.
+                    var n = O.utils.unList($n);
+                    O.caret.setPos(n, 0);
+                    pd = 1;
+                }
+                else if (O.utils.joinList($n)){
+                    // CASE: Join lists on removal of blank line between two lists.
+                    pd = 1;
+                }
+            }
+
+            // TODO: needs refactoring.
+            return pd; 
+            if (pos == 0) {
+                // replace tags(O.bk_re) with <p>.
+                var _node = $n[0];
+                if (_node.nodeType == 3 && !_node.previousSibling) $n = $n.parent();
+                for (var i = 0; i < O.bk_re.length; i++) {
+                    if ($n.is(O.bk_re[i])) {
+                        pd=1;
+                        var ne = O.utils.replaceTag($n, 'p')
+                        O.caret.setPos(ne, 0);
+                    }
+                }
+
+            }
+            console.log('== backspace pressed == pos: ', pos, '  Node: ', $n.prop('tagName'));
+            return pd;
+        },
+
+        /*
+        * Breaks line at cursor position ans also handles many scenarios.
+        * @return {boolean} to preventDefault or not.
+        * */
+        breakLine: function () {
+            var O = this,
+                rng = O.selection.getRange(),
+                $curElm = $(rng.end),
+                pos = rng.eo,
+                $curBElm = $(O.selection.getBlockNode(rng.end)),
+                $pivot,
+                fPivot = 0, // first $pivot.
+                D;
+
+            // Case: Exit from a block (i.e stop recreation on enter).
+            // Exception: when, $curBElm is immediate children of editor and is 'p'.
+            if($curBElm.text() === '' &&
+                !($curBElm.is('p') && $curBElm.parent().is(O.editor))){
+
+                // Case: when there is an empty p inside a li. we need to create a new li.
+                if($curBElm.is('p') && $curBElm.parent().is('li')) {
+                    var li_ = $curBElm.parent();
+                    $curBElm.remove();
+                    $curElm = $curBElm = li_;
+                    fPivot = {};
+                    pos = $curBElm.contents().length - 1;
+
+                } else {
+                    // Case: Stop recreation of elements, this time we will skip enter press.
+                    var n = O.utils.replaceTag($curBElm, 'p');
+                    O.caret.setPos(n, 0);
+                    return !0;
+                }
+            }
+
+            // split content on caret position.
+            if ($curElm[0].nodeType === 3) {
+                var txt = $curElm.text(),
+                    tb = txt.substring(0, pos),          // text before caret.
+                    ta = txt.substring(pos, txt.length); // text after caret.
+
+                if (tb != '' && ta != '') {
+                    $curElm.before(document.createTextNode(tb));
+                    fPivot = document.createTextNode(ta);
+                    D = $curElm;
+                }
+
+                if(tb != '' && ta == '') {
+                    fPivot = {};  // this serves the purpose of an empty element
+                }
+
+            } else {
+                /*
+                * TODO: Handle case: "if no childNodes exists"
+                * - Hopefully this will never occur, but if do just insert a blank textNode.
+                * */
+                $curElm = $curElm.contents().eq(pos);
+            }
+
+            $pivot = $curElm;
+            var $n, prevE,
+                pars = $curElm.parentsUntil($curBElm);
+            pars.push($curBElm[0]);
+
+            // move siblings and parents siblings.
+            pars.each(function(i, e){
+                $n = $(e).clone().empty();
+
+                var next = (prevE ? prevE : $pivot[0]).nextSibling;
+                $n.append(fPivot ? fPivot : $pivot);
+
+                while (next) {
+                    var t = next.nextSibling;
+                    $n.append(next);
+                    next = t;
+                }
+
+                $pivot = $n;
+                prevE = e;
+                fPivot = 0;
+            });
+
+            // it will be good to remove at last.
+            D?D.remove():0;
+            $curBElm.after($n);
+
+            O.utils.setBlank($curBElm);
+            O.utils.setBlank($n);
+            O.caret.setPos($n, 0);
+
+            return !0;
+        },
+
+        /*
+         * block: {string} valid name of tag to create
+         */
+        toggleBlock: function (block) {
+            // there may be discrepancy in selected nodes. as some of them may already be
+            // wrapped and some may not. So we use the state of first element to change
+            // the state of selection.
+            var O = this, r = null;
+
+            var nodes = O.selection.preserve(function (mE) {
+                mE = $(mE);
+                r = r == null ? mE.is(block) : r;
+                var elem;
+                if (r) {
+                    // begin removing the block.
+                    elem = O.utils.replaceTag(mE, 'p');
+                    O.utils.setBlank(elem);
+                }
+                else {
+                    console.log('inserting element');
+
+                    // # NESTING
+                    if (mE.is('li')) {
+                        elem = $('<' + block + '>');
+                        elem.append(mE.contents());
+                        mE.append(elem);
+                    }
+                    else {
+                        elem = O.utils.replaceTag(mE, block);
+                    }
+                }
+
+                return elem[0];
+            });
+            // O.setCursorAtPos(elem, pos);
+
+            // return newly created element.
+            return null;
+        },
+
+        /*
+        * Handles add/removal of lists
+        * @param {string('ul'| 'ol')} list the list node.
+        * */
+        listHandler: function (lst){
+            var r = null, O = this;
+            
+            var nodes = O.selection.preserve(function(el){
+                // el = $(el);
+                // r = r == null ? el.parent().is(lst) : r;
+
+                // el is the closest block element.
+                // first try to pick closest li if exists else take el
+                var $elm,
+                    $el = $(O.utils.ancestorIs(el, 'li') || el);
+                r = r == null ? $el.parent().is(lst) : r;
+                // r = r == null ? O.utils.ancestorIs($el, lst) : r;
+                // $el = $($el);
+
+                if(r){
+                    // removing lst
+                    $elm = O.utils.unList($el);
+                }
+                else{
+                    // adding lst.
+                    $elm = O.wrapList(lst, $el);
+                }
+
+                return $elm[0];
+            });
+        },
+
+        /*
+        * Wraps/replace an element($el) to list.
+        * @param {string} lst the list element can be 'ol' or 'ul'
+        * @param {jQuery Element} $el the node to wrap/replace.
+        * @return {jQuery Element} the newly crated list element
+        * */
+        wrapList: function(lst, $el) {
+
+            // if there is already a list of different type. then just change the type.
+            if ($el.is('li')){
+                this.utils.replaceTag($el.parent(), lst);
+                return $el;
+            }
+
+            var $li = $('<li>').append($el.contents());
+
+            // if there is a ul/ol already before/after append to existing list.
+            // Set priority accordingly.
+            if ($el.prev().is(lst)) {
+                $el.prev().append($li);
+                this.utils.joinList($el); // :P just fits here.
+            }
+            else if ($el.next().is(lst)) {
+                $el.next().prepend($li);
+            }
+            else {
+                $el.before(
+                    $('<' + lst + '>').append($li)
+                );
+            }
+
+            $el.remove();
+            return $li
+        }
     }
 
+    /*
+    * Selection module - contains all selection related methods.
+    * */
+    Editor.prototype.selection = {
+        // REF: https://stackoverflow.com/questions/7781963/js-get-array-of-all-selected-nodes-in-contenteditable-div
+
+        /*
+        * A list of elements which we want to consider block elements (wtf :p)
+        * */
+        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, H1:1, H2:1, H3:1, H4:1}, // using a map to keep lookup faster.
+
+        /*
+        * Aliased for get.
+        * @returns {{nodes: Array.<DOM element in selection>, range: Object.<Range Object>}}
+        * */
+        pull: function () {
+            var rng = this.getRange(),
+                node = this.getBlockNode(rng.start),
+                endNode = this.getBlockNode(rng.end),
+                // Special case for a range that is contained within a single node
+                nodes = [node];
+
+            while (node && node != endNode) {
+                node = node.nextSibling;
+                nodes.push(node);
+            }
+
+            return {
+                nodes: nodes,
+                rng: rng,
+            };
+        },
+
+        /*
+        * Get selection.
+        * @return {Object} the selection object.
+        */
+        obj: function () {
+            var s = window.getSelection;
+            if (s) {
+                return s();
+            } else {
+                //TODO: handle fallback.
+                alert('Shitty browser! does not support window.getSelection');
+            }
+        },
+
+        /*getNodes: function () {
+            return this.pull().nodes;
+        },*/
+
+        /*
+        * Aliased for range
+        * @returns Object.<rng> a custom range object.
+        * */
+        getRange: function(){
+
+            var sel = this.obj(),
+                range = sel.getRangeAt(0),
+                /*
+                * @type {{
+                *   start: Object.<DOM Node>, so: number,
+                *   end: Object.<DOM Node>, eo: number
+                *  }}
+                *  a custom interpretation of range object
+                * */
+                rng = {
+                    start: range.startContainer,
+                    end: range.endContainer,
+                    so: range.startOffset,
+                    eo: range.endOffset
+                };
+                    // collapsed = range.collapsed;
+
+                // if any of the ends are outside of editor container.
+                // set a collapsed range on last node.
+         /*       if(!this.isInside(rng.start) || !this.isInside(rng.end)){
+                    var cn = this.O.editor.childNodes;
+                    rng.start = rng.end = cn[cn.length-1];
+                    // usually rng.end should not be a text node but just a sanity check,
+                    rng.so = rng.eo = rng.end.nodeType == 3 ? rng.end.length : rng.end.childNodes.length;
+                }*/
+
+                // firefox case: pressing ctrl + a selects editor container also.
+                /*
+                I think we don't need this check now as we have handled ctrl + A
+                if(rng.start == this.O.editor && rng.end == this.O.editor){
+                    debugger;
+                    var cn = this.O.editor.childNodes;
+                    rng.start = cn[0];
+                    rng.end = cn[cn.length-1];
+                    rng.so = 0;
+                    // usually rng.end should not be a text node but just a sanity check,
+                    rng.eo = rng.end.nodeType == 3 ? rng.end.length : rng.end.childNodes.length;
+                }*/
+            return rng;
+        },
+
+        /*
+        * sets a selection in editor specified by given range.
+        * @param Object.<rng>
+        * */
+        setRange: function(rng){
+            var sel = this.obj(),
+                range = document.createRange();
+            range.setStart(rng.start, rng.so);
+            range.setEnd(rng.end, rng.eo);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        },
+
+        /*
+        * gets immediate children of editor containing node.
+        * @returns {Element}
+        * */
+        getRootNode: function(node) {
+            return $(node).parentsUntil(this.O.editor).andSelf()[0];
+        },
+
+        /*
+        * gets a parent block element(elements in object BLOCK_ELEMENTS) OR
+        * immediate children of editor containing node.
+        * @param {Object=} node parent DOM block node.
+        * @returns {Object.<DOM Element>}
+        * */
+        getBlockNode: function(node) {
+            var self = this,
+                //node = node || self.getRange()
+                _node = null,
+                parents = $.merge([node], $(node).parentsUntil(this.O.editor));
+
+            $.each(parents, function (i, e) {
+                // ignore text nodes.
+                if(e.nodeType == 3) return;
+                if (self.BLOCK_ELEMENTS[e.tagName.toUpperCase()]) {
+                    _node = e;
+                    return false;
+                }
+            });
+            return _node || parents[0];
+        },
+
+        /*
+        * Do any replace element operation using this.
+        * */
+        preserve: function (modify) {
+            var sel = this.pull();
+            var rng = sel.rng;
+
+            $.each(sel.nodes, function (i, n) {
+                var created = modify(n);
+
+                // if we have modified selection containers update them.
+                if(n == rng.start)
+                    rng.start = created;
+                if(n == rng.end)
+                    rng.end = created;
+            });
+
+            this.setRange(rng);
+        },
+
+        /*
+        * Checks if given node is inside the editor or not
+        * */
+        isInside: function (node) {
+            return this.O.editor == node || $.contains(this.O.editor, node);
+        },
+
+        /*
+        * Selects all text inside editor.
+        * */
+        selectAll: function () {
+            var txts = this.O.utils.textNodes(this.O.editor);
+            if (txts.length > 0) {
+                var last = txts[txts.length - 1];
+                this.setRange({
+                    start: txts[0],
+                    end: last,
+                    so: 0,
+                    eo: last.length
+                });
+            }
+        }
+    };
+
+    /*
+    * Module contains Caret related methods.
+    * */
+    Editor.prototype.caret = {
+
+        /*
+        * @param {boolean=} pos whether to return position of caret wrt block node. default is false.
+        * @returns {Object} the closest block node to cursor.
+        * */
+        getBlock: function (pos) {
+            var rng = this.O.selection.getRange(),
+                n = this.O.selection.getBlockNode(rng.start);
+            if (pos) {
+                var p = this.getPos(n, rng);
+                /*
+                * @typedef {object.<node: <DOM Node>, pos: number>} blk
+                * represents a block node and cursor position inside it.
+                * */
+                return {
+                    node: n,
+                    pos: p
+                }
+            }
+            else{
+                return n;
+            }
+        },
+
+        /*
+        * gets the caret position w.r.t. given node.
+        * @param {Object.<DOM Node>} node
+        * @param {Object.<>=} rng
+        * @returns {number} caret position.
+        * */
+        getPos: function (node, rng) {
+            rng = rng || this.O.selection.getRange();
+            var c = rng.so,
+                s = rng.start;
+
+            if (node == s || $(node).find(s).length > 0) {
+                while (s) {
+                    if (node == s) break;
+
+                    if (s.previousSibling) {
+                        s = s.previousSibling;
+                        c += s.textContent.length;
+                    } else {
+                        s = s.parentNode;
+                        // just a fail safe if anything unpredictable happens to avoid infinite loop.
+                        if (s === null) break;
+                    }
+                }
+            }
+            return c;
+        },
+
+        /*
+        * Sets the caret position in a given element and at given offset.
+        * @param {jQuery Element} $E
+        * @param {number} pos The position offset.
+        * */
+        setPos: function ($E, pos) {
+            // TODO: Needs refactoring this can be implemented by selection apis
+            var createRange = function (node, chars, range) {
+                if (!range) {
+                    range = document.createRange()
+                    range.selectNode(node);
+                    range.setStart(node, 0);
+                }
+
+                if (chars.count === 0) {
+                    range.setEnd(node, chars.count);
+                } else if (node && chars.count > 0) {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        if (node.textContent.length < chars.count) {
+                            chars.count -= node.textContent.length;
+                        } else {
+                            range.setEnd(node, chars.count);
+                            chars.count = 0;
+                        }
+                    } else {
+                        for (var lp = 0; lp < node.childNodes.length; lp++) {
+                            range = createRange(node.childNodes[lp], chars, range);
+
+                            if (chars.count === 0) {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                return range;
+            };
+
+            if (pos >= 0) {
+                var selection = window.getSelection();
+
+                var range = createRange($E[0], {count: pos});
+
+                if (range) {
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+
+        }
+    };
+
+    /*
+    * Utility function goes here.
+    * */
+    Editor.prototype.utils = {
+
+        /*
+        * Sets the empty character in a blank row.
+        * @param {jQuery Element} row element
+        * */
+        setBlank: function ($e) {
+            if ($e.html().trim() === '') {
+                $e.html('<br/>');
+            }
+        },
+
+        /*
+        * replace the tag name of node.
+        * @param {jQuery Element} n jQuery dom node.
+        * @param {string} t the new node name.
+        * @returns {jQuery Element} then new DOM node.
+        * */
+        replaceTag: function ($n, t) {
+            if($n.is(t)) return $n;
+            if($n.is('li')) {
+                return this.unList($n);
+            }
+
+            var $m = $('<'+ t +'>');
+            $m.html($n.contents());
+            $n.after($m);
+            $n.remove();
+            return $m;
+        },
+
+        /*
+        * Removes given list item from list and put its content in an appropriate container.
+        * @param {jQuery Element} li the jQuery instance of list item.
+        * @param {string} t new tag to move content to.
+        * @returns {jQuery Element} The newly created DOM object.
+        * */
+        unList: function ($li) {
+
+            var elem = this.sanitizeContent($li),
+                $lst = $li.parent();
+
+            // handling list split when cursor is on non edge $li.
+            if ($li.is(':first-child')) {
+                $lst.before(elem);
+            }
+            else if ($li.is(':last-child')) {
+                $lst.after(elem);
+            }
+            else {
+                // create a new list for previous $li's
+                $lst.before(
+                    $lst.clone().empty().append($li.prevAll().get().reverse())  // :D Love jQuery.
+                );
+                $lst.before(elem);
+            }
+
+            $li.remove();
+            if (!$lst.children().length) {
+                $lst.remove();
+            }
+
+            // just pass last node, hopefully.
+            return $(elem[elem.length - 1]);
+        },
+
+        /*
+        * Join two same type of lists that are separated by a blank line (node)
+        * @param {jQuery Element} $n the node between two lists.
+        * @returns {boolean} status if lists joined or not
+        * */
+        joinList: function ($n) {
+            if (($n.prev().is('ol') && $n.next().is('ol')) ||
+                    ($n.prev().is('ul') && $n.next().is('ul'))) {
+                var $prv = $n.prev(),
+                    $nxt = $n.next(),
+                    $li = $prv.children().last();
+
+                $prv.append($nxt.children());
+                $nxt.remove();
+                $n.remove();
+
+                this.O.caret.setPos($li, $li.text().length);
+                return !0;
+            }
+            return !1;
+        },
+
+        /*
+        * Gets all text nodes inside the given Element `E`
+        * @param {Element} E
+        * @returns {Array.<Element>} text nodes in in-order traversal.
+        * */
+        textNodes: function (E) {
+            function tNodes(piv, arr){
+                var c = piv.childNodes;
+                for (var i=0; i<c.length; i++){
+                    if (c[i].nodeType === 3) {
+                        arr.push(c[i]);
+                    } else {
+                        arr = tNodes(c[i], arr);
+                    }
+                }
+                return arr
+            }
+            return tNodes(E, []);
+        },
+
+        /*
+        * checks if `tag` is `e` or is an ancestor of `e`
+        * @param {Element} e
+        * @param {string} tag
+        * @returns {boolean||Object.<Element>} false if ancestor not found else returns ancestor.
+        * */
+        ancestorIs: function (e, tag) {
+            while(e && e != this.O.editor){
+                if(e.tagName.toUpperCase() === tag.toUpperCase()){
+                    return e;
+                }
+                e = e.parentElement;
+            }
+            return !1;
+        },
+
+        /*
+        * Make content safe inside the given tag, for tag removal.
+        * Mainly it wraps textNodes in a <p> element.
+        * @param {Object.<jQuery DOM element>} $n
+        * @returns {Array.<elements>}
+        * */
+        sanitizeContent: function ($n) {
+            var elms = [], p=0;
+            $n.contents().each(function(_, e){
+                if((e.nodeType === 3 && e.textContent) || $(e).is('br')){
+                    p = p || $('<p>');
+                    p.append(e);
+                } else {
+                    if(p) elms.push(p[0]);
+                    p = 0;
+                    elms.push(e);
+                }
+            });
+            if(p) elms.push(p[0]);
+            return elms;
+        },
+
+        /*
+        * Observes a dom element for changes.
+        * @param {Element} elm the DOM node to watch
+        * @param {function} cb A callback function.
+        * */
+        domObserver: function (elm, cb) {
+            // REF: https://stackoverflow.com/questions/3219758/detect-changes-in-the-dom#answer-14570614
+            var muO, isEvt = window.addEventListener;
+
+            if(this.O.muO)
+                muO = this.O.muO;
+            else
+                muO = this.O.muO = window.MutationObserver || window.WebKitMutationObserver;
+
+            if (muO) {
+                // define a new observer
+                var obs = new muO(function (mj) {
+                    if (mj[0].addedNodes.length || mj[0].removedNodes.length) cb();
+                });
+                // have the observer observe foo for changes in children
+                obs.observe(elm, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+            // fallback to back to the deprecated Mutation events
+            else if (isEvt) {
+                elm.addEventListener('DOMNodeInserted', cb, false);
+                elm.addEventListener('DOMNodeRemoved', cb, false);
+            }
+        },
+
+        /*
+        * Insert a new empty line inside the given node
+        * @param {jQuery Element} $e
+        * @return {jQuery Element} the newly created element.
+        * */
+        newLine: function ($e) {
+            var n = $('<p><br/></p>');
+            $e.append(n);
+            return n;
+        }
+    };
+
+    /*
+    * All the toolbar button definition goes here.
+    * */
     Editor.prototype.buttons = {
         quote: function () {
             return {
                 ico: 'quote',
-                buttonIdentifier: 'quote',  // selector
-                buttonHtml: 'Quote',        // caption value
-                // type: 'block',
-                // breakOnEnter: False,
-                blockName: 'blockquote',    // these will always be the first child of editor.
+                typ: 'block',
+                tag: 'blockquote',
                 removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
-                clickHandler: function () {
+                onclick: function () {
                 }
             }
         },
-        bold:function () {
+        code:function () {
             return {
-                ico:'bold'
+                ico: 'code',
+                tag: 'code'
             }
-        },
-        italic:function () {
-            return {
-                ico:'italic'
-            }
-        },
-        underline:function () {
-            return {
-                ico:'underline'
-            }
-        },
-        strike:function () {
-            return {
-                ico:'strike'
-            }
-        },
-        ol:function () {
-            return {ico:'ol' }
-        },
-        ul:function () {
-            return {ico:'ul' }
-        },
-        indent:function () {
-            return {ico:'indent' }
-        },
-        unindent:function () {
-            return {ico:'unindent' }
-        },
-        sub:function () {
-            return {ico:'sub' }
-        },
-        sup:function () {
-            return {ico:'sup' }
         },
 
-
+        ol: function () {
+            var O = this;
+            return {
+                ico: 'ol',
+                tag: 'ol',
+                onclick: function () {
+                    O.listHandler('ol');
+                }
+            }
+        },
+        ul: function () {
+            var O = this;
+            return {
+                ico: 'ul',
+                tag: 'ul',
+                onclick: function () {
+                    O.listHandler('ul');
+                }
+            }
+        },
+        bold: function () {
+            return {
+                ico: 'bold'
+            }
+        },
+        italic: function () {
+            return {
+                ico: 'italic'
+            }
+        },
+        underline: function () {
+            return {
+                ico: 'underline'
+            }
+        },
+        strike: function () {
+            return {
+                ico: 'strike'
+            }
+        },
+        indent: function () {
+            return {ico: 'indent'}
+        },
+        unindent: function () {
+            return {ico: 'unindent'}
+        },
+        sub: function () {
+            return {ico: 'sub'}
+        },
+        sup: function () {
+            return {ico: 'sup'}
+        },
+        clean:function () {
+            return {
+                ico: 'code',
+            }
+        },
 
     }
 

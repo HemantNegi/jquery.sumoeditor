@@ -3,6 +3,8 @@ A javascript rich text editor for web content creation.
 
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
+# DOM Mutation observers are supported IE9+, FF, Webkit
+
 RULES
 - No text node will ever be a direct child of editor.
 - Do not delete any node ever, always try to move it.
