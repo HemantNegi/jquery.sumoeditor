@@ -23,12 +23,6 @@
         O.editor = O.$editor[0];
 
         O.$wrapper.append([O.$toolbar, O.$editor]);
-
-        /*TODO: Remove this block*/
-        if (!O.$editor.find('p').length && O.$editor.text().trim() === '') {
-            O.$editor.html('<p><br /></p>');
-        }
-        O.$wrapper.after(O.$e);
     }
 
     Editor.prototype = {
@@ -68,6 +62,19 @@
         },
 
         /*
+        * Setup and sanitize initial content into the editor.
+        * */
+        setUp: function () {
+            var O = this;
+            if (!O.$editor.find('p').length && O.$editor.text().trim() === '') {
+                O.$editor.html('<p><br /></p>');
+            }
+
+            /*TODO: Remove this block*/
+            O.$wrapper.after(O.$e);
+        },
+
+        /*
          * Parse config.toolbar options and populate buttons in toolbar.
          * */
         setToolbar: function () {
@@ -95,6 +102,11 @@
             parseBtns(O.config.toolbar, O.$toolbar);
         },
 
+        /*
+        * create buttons for the toolbar, also binds events and there handlers.
+        * @param {Object} def A button definition object (returned form the button object)
+        * @return {jQuery Element} the newly created button.
+        * */
         createButton: function (def) {
             var O = this,
                 btn = $('<button>').addClass('sumo-' + def.ico);
