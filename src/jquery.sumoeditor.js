@@ -27,6 +27,7 @@
 
     Editor.prototype = {
         defaults: {
+            placeholder: 'Start writing here...',
             toolbar: [
                 ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
                 ['quote', 'code'],
@@ -52,9 +53,13 @@
             // globally or using an object literal.
             this.config = $.extend(this.defaults, this.opts);
 
+            // Array holds the tag names of elements to be removed forcefully on backspace.
+            this.bkArr = [];
+
             // initialize modules.
             this.selection.O = this.caret.O = this.utils.O = this;
 
+            this.setUp();
             this.setToolbar();
             this.bindEvents();
 
@@ -66,8 +71,12 @@
         * */
         setUp: function () {
             var O = this;
-            if (!O.$editor.find('p').length && O.$editor.text().trim() === '') {
-                O.$editor.html('<p><br /></p>');
+            O.$editor.attr('placeholder', O.config.placeholder || O.$e.attr('placeholder'));
+
+            O.$editor.html(O.$e.text());
+            O.utils.sanitizeContent(O.$editor);
+            if (!O.$editor.find('p').length && O.getContent().trim() === '') {
+                O.utils.addLine(O.$editor);
             }
 
             /*TODO: Remove this block*/
@@ -111,11 +120,13 @@
             var O = this,
                 btn = $('<button>').addClass('sumo-' + def.ico);
 
+            if(def.rmOnBkSpace) this.bkArr.push(def.tag);
+
             btn.on('click', function (evt) {
                 evt.preventDefault();
 
                 if(typeof def.onclick === 'function')
-                    def.onclick.call(this);
+                    def.onclick.call(this, def);
 
                 switch (def.typ) {
                 case 'block':
@@ -149,7 +160,7 @@
                 // CASE: There must always be a p element present in the editor if its empty.
                 if (!O.$editor.children(':not(br)').length) {
                     O.$editor.find('br').remove();
-                    O.utils.newLine(O.$editor);
+                    O.utils.addLine(O.$editor);
                 }
 
                 // wrap any orphan text nodes in <p>
@@ -173,6 +184,8 @@
                 // O.currentElement = node;
                 // O.cursorPos = n;
                 // console.log('pos: ', n, 'node: ', node);
+
+
             });
 
             // handle key presses.
@@ -189,6 +202,9 @@
                 else if (e.keyCode === 13 && e.shiftKey !== true) {
                     pd = O.breakLine();
                 }
+
+                // update contents of underlying actual element.
+                O.$e.text(O.getContent());
 
                 if(pd) {
                     e.preventDefault();
@@ -245,16 +261,12 @@
                 }
             }
 
-            // TODO: needs refactoring.
-            return pd; 
+            // handle removal of elements for which rmOnBkSpace is set.
             if (pos == 0) {
-                // replace tags(O.bk_re) with <p>.
-                var _node = $n[0];
-                if (_node.nodeType == 3 && !_node.previousSibling) $n = $n.parent();
-                for (var i = 0; i < O.bk_re.length; i++) {
-                    if ($n.is(O.bk_re[i])) {
+                for (var i = 0; i < O.bkArr.length; i++) {
+                    if ($n.is(O.bkArr[i])) {
                         pd=1;
-                        var ne = O.utils.replaceTag($n, 'p')
+                        var ne = O.utils.replaceTag($n, 'p');
                         O.caret.setPos(ne, 0);
                     }
                 }
@@ -462,6 +474,18 @@
 
             $el.remove();
             return $li
+        },
+
+        /*
+        * Gets the markup inside editor.
+        * Also sets the class blank to editor.
+        * @return {string}
+        * */
+        getContent: function () {
+            var $e = this.$editor,
+                x = $e.text();
+            setTimeout(function(){$e.toggleClass('blank', !$e.text());},1)
+            return x === '' ? '' : $e.html();
         }
     }
 
@@ -802,7 +826,7 @@
         * */
         unList: function ($li) {
 
-            var elem = this.sanitizeContent($li),
+            var elem = this.extractContent($li),
                 $lst = $li.parent();
 
             // handling list split when cursor is on non edge $li.
@@ -830,7 +854,7 @@
         },
 
         /*
-        * Join two same type of lists that are separated by a blank line (node)
+        * Join two same type of lists that are separated by a blank line.
         * @param {jQuery Element} $n the node between two lists.
         * @returns {boolean} status if lists joined or not
         * */
@@ -888,12 +912,12 @@
         },
 
         /*
-        * Make content safe inside the given tag, for tag removal.
+        * Make content safe inside the given tag, so it can be unwrapped.
         * Mainly it wraps textNodes in a <p> element.
         * @param {Object.<jQuery DOM element>} $n
         * @returns {Array.<elements>}
         * */
-        sanitizeContent: function ($n) {
+        extractContent: function ($n) {
             var elms = [], p=0;
             $n.contents().each(function(_, e){
                 if((e.nodeType === 3 && e.textContent) || $(e).is('br')){
@@ -907,6 +931,15 @@
             });
             if(p) elms.push(p[0]);
             return elms;
+        },
+
+        /*
+        * Basic markup sanity over the content of given element.
+        * @param {jQuery Element} $e the element to sanitize.
+        * */
+        sanitizeContent: function ($e) {
+            var c = this.extractContent($e);
+            $e.empty().append(c);
         },
 
         /*
@@ -946,7 +979,7 @@
         * @param {jQuery Element} $e
         * @return {jQuery Element} the newly created element.
         * */
-        newLine: function ($e) {
+        addLine: function ($e) {
             var n = $('<p><br/></p>');
             $e.append(n);
             return n;
@@ -962,7 +995,7 @@
                 ico: 'quote',
                 typ: 'block',
                 tag: 'blockquote',
-                removeOnBackSpace: true,    // force remove this tag on backspace and wrap in P.
+                rmOnBkSpace: true,    // force remove this tag on backspace.
                 onclick: function () {
                 }
             }
@@ -970,7 +1003,8 @@
         code:function () {
             return {
                 ico: 'code',
-                tag: 'code'
+                typ: 'block',
+                tag: 'code',
             }
         },
 
@@ -1028,7 +1062,7 @@
         },
         clean:function () {
             return {
-                ico: 'code',
+                ico: 'clean',
             }
         },
 
