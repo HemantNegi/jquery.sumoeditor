@@ -75,10 +75,11 @@
 
             O.$editor.html(O.$e.text());
             O.utils.sanitizeContent(O.$editor);
-            if (!O.$editor.find('p').length && O.getContent().trim() === '') {
+            if (!O.$editor.children().length ) {
                 O.utils.addLine(O.$editor);
             }
 
+            O.getContent();
             /*TODO: Remove this block*/
             O.$wrapper.after(O.$e);
         },
@@ -134,9 +135,12 @@
                     O.toggleBlock.call(O, def.tag);
                     break;
                 case 'inline':
+                    O.toggleInline.call(O, def.tag);
                     break;
 
                 }
+
+                O.getContent();
             })
 
             return btn;
@@ -160,7 +164,8 @@
                 // CASE: There must always be a p element present in the editor if its empty.
                 if (!O.$editor.children(':not(br)').length) {
                     O.$editor.find('br').remove();
-                    O.utils.addLine(O.$editor);
+                    var $p = O.utils.addLine(O.$editor);
+                    O.caret.setPos($p, 0);
                 }
 
                 // wrap any orphan text nodes in <p>
@@ -184,7 +189,7 @@
                 // O.currentElement = node;
                 // O.cursorPos = n;
                 // console.log('pos: ', n, 'node: ', node);
-
+                O.getContent();
 
             });
 
@@ -204,7 +209,7 @@
                 }
 
                 // update contents of underlying actual element.
-                O.$e.text(O.getContent());
+                O.getContent();
 
                 if(pd) {
                     e.preventDefault();
@@ -410,6 +415,44 @@
         },
 
         /*
+         * tag: {string} valid name of an inline tag to create.
+         */
+        toggleInline: function (tag) {
+            var O = this, r = null;
+
+            debugger;
+            var nodes = O.selection.preserve(function (mE) {
+                mE = $(mE);
+                r = r == null ? mE.is(tag) : r;
+                var elem;
+                if (r) {
+                    // begin removing the tag.
+                    elem = O.utils.replaceTag(mE, 'p');
+                    O.utils.setBlank(elem);
+                }
+                else {
+                    console.log('inserting element');
+
+                    // # NESTING
+                    if (mE.is('li')) {
+                        elem = $('<' + tag + '>');
+                        elem.append(mE.contents());
+                        mE.append(elem);
+                    }
+                    else {
+                        elem = O.utils.replaceTag(mE, tag);
+                    }
+                }
+
+                return elem[0];
+            });
+            // O.setCursorAtPos(elem, pos);
+
+            // return newly created element.
+            return null;
+        },
+
+        /*
         * Handles add/removal of lists
         * @param {string('ul'| 'ol')} list the list node.
         * */
@@ -417,8 +460,6 @@
             var r = null, O = this;
             
             var nodes = O.selection.preserve(function(el){
-                // el = $(el);
-                // r = r == null ? el.parent().is(lst) : r;
 
                 // el is the closest block element.
                 // first try to pick closest li if exists else take el
@@ -483,10 +524,17 @@
         * */
         getContent: function () {
             var $e = this.$editor,
-                x = $e.text();
-            setTimeout(function(){$e.toggleClass('blank', !$e.text());},1)
-            return x === '' ? '' : $e.html();
-        }
+                x = $e.text(),
+                $c = $e.children(),
+                txt = x === '' ? '' : $e.html();
+
+            this.$e.text(txt);
+            setTimeout(function(){
+                $e.toggleClass('blank', ($c.length < 2 && !$e.text() && $c.first().is('p')));
+            },1)
+            return txt;
+        },
+
     }
 
     /*
@@ -498,20 +546,20 @@
         /*
         * A list of elements which we want to consider block elements (wtf :p)
         * */
-        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, H1:1, H2:1, H3:1, H4:1, UL:1, OL:1}, // using a map to keep lookup faster.
+        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, CODE:1, H1:1, H2:1, H3:1, H4:1, UL:1, OL:1}, // using a map to keep lookup faster.
 
         /*
-        * Aliased for get.
-        * @returns {{nodes: Array.<DOM element in selection>, range: Object.<Range Object>}}
+        * Gets the block nodes in the selection.
+        * @returns {{nodes: Array.<Element>, range: Object.<Range Object>}}
         * */
-        pull: function () {
+        getBlocks: function () {
             var O = this,
                 rng = this.getRange(),
                 start = this.getBlockNode(rng.start),
                 end = this.getBlockNode(rng.end),
                 nodes = [],
                 stNode = O.getRootNode(start),
-                enNode = O.getRootNode(end);
+                enNode = O.getRootNode(end),
                 // recursively gets all the block child nodes of given node.
                 gbe = function(nod){
                     var be = [], m = !1, C=nod.childNodes;
@@ -549,7 +597,7 @@
                 lim = nodes.indexOf(end) - off + 1;
             return {
                 nodes: nodes.splice(off, lim),
-                rng: rng,
+                rng: rng
             };
         },
 
@@ -566,10 +614,6 @@
                 alert('Shitty browser! does not support window.getSelection');
             }
         },
-
-        /*getNodes: function () {
-            return this.pull().nodes;
-        },*/
 
         /*
         * Aliased for range
@@ -666,7 +710,7 @@
         * Do any replace element operation using this.
         * */
         preserve: function (modify) {
-            var sel = this.pull();
+            var sel = this.getBlocks();
             var rng = sel.rng;
 
             $.each(sel.nodes, function (i, n) {
@@ -934,7 +978,7 @@
         * */
         ancestorIs: function (e, tag) {
             while(e && e != this.O.editor){
-                if(e.tagName && e.tagName.toUpperCase() === tag.toUpperCase()){
+                if(e.tagName.toUpperCase() === tag.toUpperCase()){
                     return e;
                 }
                 e = e.parentElement;
@@ -1061,7 +1105,9 @@
         },
         bold: function () {
             return {
-                ico: 'bold'
+                ico: 'bold',
+                typ: 'inline',
+                tag: 'strong'
             }
         },
         italic: function () {
