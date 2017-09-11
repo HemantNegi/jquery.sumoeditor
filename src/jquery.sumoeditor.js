@@ -498,26 +498,57 @@
         /*
         * A list of elements which we want to consider block elements (wtf :p)
         * */
-        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, H1:1, H2:1, H3:1, H4:1}, // using a map to keep lookup faster.
+        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, H1:1, H2:1, H3:1, H4:1, UL:1, OL:1}, // using a map to keep lookup faster.
 
         /*
         * Aliased for get.
         * @returns {{nodes: Array.<DOM element in selection>, range: Object.<Range Object>}}
         * */
         pull: function () {
-            var rng = this.getRange(),
-                node = this.getBlockNode(rng.start),
-                endNode = this.getBlockNode(rng.end),
-                // Special case for a range that is contained within a single node
-                nodes = [node];
+            var O = this,
+                rng = this.getRange(),
+                start = this.getBlockNode(rng.start),
+                end = this.getBlockNode(rng.end),
+                nodes = [],
+                stNode = O.getRootNode(start),
+                enNode = O.getRootNode(end);
+                // recursively gets all the block child nodes of given node.
+                gbe = function(nod){
+                    var be = [], m = !1, C=nod.childNodes;
+                    for(var i=0; i<C.length; i++){
+                        var n = C[i];
+                        // if any of the child nodes is not a block node then break.
+                        if (n.tagName && O.BLOCK_ELEMENTS[n.tagName.toUpperCase()]){
+                            be.push(n);
+                        }
+                        else{
+                            m = !0;
+                            break;
+                        }
+                    }
 
-            while (node && node != endNode) {
-                node = node.nextSibling;
-                nodes.push(node);
+                    if(m || !C.length){
+                        return [nod]
+                    }
+                    else{
+                        var arr = [];
+                        for(var i=0; i<be.length; i++){
+                            arr = arr.concat(gbe(be[i]));
+                        }
+                        return arr;
+                    }
+                };
+
+            while (stNode) {
+                nodes = nodes.concat(gbe(stNode));
+                if (stNode === enNode) break;
+                stNode = stNode.nextSibling;
             }
-
+            
+            var off = nodes.indexOf(start),
+                lim = nodes.indexOf(end) - off + 1;
             return {
-                nodes: nodes,
+                nodes: nodes.splice(off, lim),
                 rng: rng,
             };
         },
@@ -903,7 +934,7 @@
         * */
         ancestorIs: function (e, tag) {
             while(e && e != this.O.editor){
-                if(e.tagName.toUpperCase() === tag.toUpperCase()){
+                if(e.tagName && e.tagName.toUpperCase() === tag.toUpperCase()){
                     return e;
                 }
                 e = e.parentElement;
