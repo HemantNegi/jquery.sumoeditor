@@ -383,7 +383,7 @@
             // the state of selection.
             var O = this, r = null;
 
-            var nodes = O.selection.preserve(function (mE) {
+            var nodes = O.selection.eachBlock(function (mE) {
                 mE = $(mE);
                 r = r == null ? mE.is(block) : r;
                 var elem;
@@ -421,7 +421,7 @@
             var O = this, r = null;
 
             debugger;
-            var nodes = O.selection.preserve(function (mE) {
+            var nodes = O.selection.eachBlock(function (mE) {
                 mE = $(mE);
                 r = r == null ? mE.is(tag) : r;
                 var elem;
@@ -459,7 +459,7 @@
         listHandler: function (lst){
             var r = null, O = this;
             
-            var nodes = O.selection.preserve(function(el){
+            var nodes = O.selection.eachBlock(function(el){
 
                 // el is the closest block element.
                 // first try to pick closest li if exists else take el
@@ -707,9 +707,36 @@
         },
 
         /*
-        * Do any replace element operation using this.
+        * Iterates over block elements, while preserving the selection.
+        * @param {Callback} modify A callback function. it will be called for each
+        *     Block element with Element as param. this callback function will have to return
+        *     the newly created Element if any, or the same element passed as an argument.
         * */
-        preserve: function (modify) {
+        eachBlock: function (modify) {
+            var sel = this.getBlocks();
+            var rng = sel.rng;
+
+            $.each(sel.nodes, function (i, n) {
+                var created = modify(n);
+
+                // if we have modified selection containers update them.
+                if(n == rng.start)
+                    rng.start = created;
+                if(n == rng.end)
+                    rng.end = created;
+            });
+
+            this.setRange(rng);
+        },
+
+        /*
+        * Iterates over selected text nodes, while preserving the selection.
+        * @param {Callback} modify A callback function. it will be called for each
+        *     line with line as array of nodes(text and BR mostly) as param.
+        *     this callback function will have to return the newly created Element
+        *     if any, or the same element passed as an argument.
+        * */
+        eachInline: function (modify) {
             var sel = this.getBlocks();
             var rng = sel.rng;
 
