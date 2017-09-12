@@ -420,36 +420,10 @@
         toggleInline: function (tag) {
             var O = this, r = null;
 
-            debugger;
-            var nodes = O.selection.eachBlock(function (mE) {
-                mE = $(mE);
-                r = r == null ? mE.is(tag) : r;
-                var elem;
-                if (r) {
-                    // begin removing the tag.
-                    elem = O.utils.replaceTag(mE, 'p');
-                    O.utils.setBlank(elem);
-                }
-                else {
-                    console.log('inserting element');
-
-                    // # NESTING
-                    if (mE.is('li')) {
-                        elem = $('<' + tag + '>');
-                        elem.append(mE.contents());
-                        mE.append(elem);
-                    }
-                    else {
-                        elem = O.utils.replaceTag(mE, tag);
-                    }
-                }
-
-                return elem[0];
+            var nodes = O.selection.eachInline(function (n) {
+                console.log(n)
+                return n;
             });
-            // O.setCursorAtPos(elem, pos);
-
-            // return newly created element.
-            return null;
         },
 
         /*
@@ -602,6 +576,57 @@
         },
 
         /*
+        * gets inline elements within the selection. It includes the complete edge rows.
+        * @return { nodes: {Array<Array<Element>>} the array of elements within the selection.,
+        *           rng: {rng}
+        * */
+        getInlines: function () {
+            var O = this,
+                rng = O.getRange(),
+                nodes = [],
+                rStart = O.getRootNode(rng.start),
+                rEnd = O.getRootNode(rng.end),
+                f=0, // false, a flag to add only elements within the rng.
+                gbe = function(nod){
+                    var arr = [], m = 0, C=nod.childNodes;
+                    for(var i=0; i<C.length; i++) {
+                        var n = C[i];
+                        if(!f && n == rng.start)f=1; // start adding.
+
+                        if(n.nodeType === 3 || $(n).is('BR')){
+                            if(m == 1){
+                                if(f)arr[arr.length-1].push(n)
+                            }
+                            else {
+                                if(f){arr.push([n]);
+                                        m = 1
+                                        }
+                            }
+                        } else {
+
+                            m = 0;
+                            var arr_ = gbe(n);
+                            if(arr_.length) arr = arr.concat(arr_);
+                        }
+
+                        if(f && n == rng.end)f=0; // stop adding.
+                    }
+                    return arr
+                };
+
+            while (rStart) {
+                nodes = nodes.concat(gbe(rStart));
+                if (rStart === rEnd) break;
+                rStart = rStart.nextSibling;
+            }
+
+            return {
+                nodes: nodes,
+                rng: rng,
+            };
+        },
+
+        /*
         * Get selection.
         * @return {Object} the selection object.
         */
@@ -737,10 +762,29 @@
         *     if any, or the same element passed as an argument.
         * */
         eachInline: function (modify) {
-            var sel = this.getBlocks();
-            var rng = sel.rng;
+            var sel = this.getInlines(),
+                nodes = sel.nodes,
+                rng = sel.rng;
 
-            $.each(sel.nodes, function (i, n) {
+            var splitTextNode = function ($t, p) {
+                var txt = $t.text(),
+                    tb = document.createTextNode(txt.substring(0, p)),          // text before caret.
+                    ta = document.createTextNode(txt.substring(p, txt.length)); // text after caret.
+
+                    $t.before(tb);
+                    $t.before(ta);
+                    $t.remove()
+                return [tb, ta]
+            }
+            // if ($curElm[0].nodeType === 3) {
+            var start =  nodes[0][0],
+                n = nodes[nodes.length - 1],
+                end = n[n.length - 1];
+            rng.start = nodes[0][0] = splitTextNode($(start), rng.so)[1];
+            rng.end = n[n.length - 1] = splitTextNode($(end), rng.eo)[0];
+            rng.so = 0;
+            
+            $.each(nodes, function (i, n) {
                 var created = modify(n);
 
                 // if we have modified selection containers update them.
@@ -749,7 +793,6 @@
                 if(n == rng.end)
                     rng.end = created;
             });
-
             this.setRange(rng);
         },
 
