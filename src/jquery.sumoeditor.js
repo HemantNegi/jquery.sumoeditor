@@ -779,10 +779,16 @@
             // if ($curElm[0].nodeType === 3) {
             var start =  nodes[0][0],
                 n = nodes[nodes.length - 1],
-                end = n[n.length - 1];
+                end = n[n.length - 1],
+                sl = rng.start === rng.end; // single line selection
             rng.start = nodes[0][0] = splitTextNode($(start), rng.so)[1];
+            if(sl){
+                end = rng.start;
+                rng.eo = rng.eo - rng.so;
+            }
             rng.end = n[n.length - 1] = splitTextNode($(end), rng.eo)[0];
             rng.so = 0;
+            if(sl){rng.start = rng.end}
             
             $.each(nodes, function (i, n) {
                 var created = modify(n);
