@@ -418,10 +418,24 @@
          * tag: {string} valid name of an inline tag to create.
          */
         toggleInline: function (tag) {
-            var O = this, r = null;
+            var O = this, an = null;
 
             var nodes = O.selection.eachInline(function (n) {
-                console.log(n)
+                var first = n[0],
+                    an = an == null ? O.utils.ancestorIs(first, tag): an;
+
+                if($(an).is(tag)){
+                    // TODO: create a function selection.wrap(startNode, endNode) 
+                }
+                else{
+                    // wrap tag around nodes.
+                    $(n).wrapAll('<'+ tag +'>');
+                    n.forEach(function(t){
+                        console.log(t);
+                    })
+                }
+
+
                 return n;
             });
         },
@@ -566,7 +580,7 @@
                 if (stNode === enNode) break;
                 stNode = stNode.nextSibling;
             }
-            
+
             var off = nodes.indexOf(start),
                 lim = nodes.indexOf(end) - off + 1;
             return {
@@ -586,38 +600,44 @@
                 nodes = [],
                 rStart = O.getRootNode(rng.start),
                 rEnd = O.getRootNode(rng.end),
-                f=0, // false, a flag to add only elements within the rng.
-                gbe = function(nod){
-                    var arr = [], m = 0, C=nod.childNodes;
-                    for(var i=0; i<C.length; i++) {
+                f = 0, // false, a flag to add only elements within the rng.
+                gbe = function (nod) {
+                    var arr = [], m = 0, C = nod.childNodes;
+                    for (var i = 0; i < C.length; i++) {
                         var n = C[i];
-                        if(!f && n == rng.start)f=1; // start adding.
+                        if (!f && n == rng.start)f = 1; // start adding.
 
-                        if(n.nodeType === 3 || $(n).is('BR')){
-                            if(m == 1){
-                                if(f)arr[arr.length-1].push(n)
+                        if (n.nodeType === 3 || $(n).is('BR')) {
+                            if (m == 1) {
+                                if (f)arr[arr.length - 1].push(n)
                             }
                             else {
-                                if(f){arr.push([n]);
-                                        m = 1
-                                        }
+                                if (f) {
+                                    arr.push([n]);
+                                    m = 1
+                                }
                             }
                         } else {
-
                             m = 0;
                             var arr_ = gbe(n);
-                            if(arr_.length) arr = arr.concat(arr_);
+                            if (arr_.length) arr = arr.concat(arr_);
                         }
 
-                        if(f && n == rng.end)f=0; // stop adding.
+                        if (f && n == rng.end)f = 0; // stop adding.
                     }
                     return arr
                 };
 
-            while (rStart) {
-                nodes = nodes.concat(gbe(rStart));
-                if (rStart === rEnd) break;
-                rStart = rStart.nextSibling;
+            // if its a point selection.
+            if (rng.start === rng.end && rng.so === rng.eo) {
+                nodes.push([rng.start])
+            }
+            else {
+                while (rStart) {
+                    nodes = nodes.concat(gbe(rStart));
+                    if (rStart === rEnd) break;
+                    rStart = rStart.nextSibling;
+                }
             }
 
             return {
@@ -762,44 +782,37 @@
         *     if any, or the same element passed as an argument.
         * */
         eachInline: function (modify) {
-            var sel = this.getInlines(),
-                nodes = sel.nodes,
-                rng = sel.rng;
-
-            var splitTextNode = function ($t, p) {
-                var txt = $t.text(),
-                    tb = document.createTextNode(txt.substring(0, p)),          // text before caret.
-                    ta = document.createTextNode(txt.substring(p, txt.length)); // text after caret.
-
-                    $t.before(tb);
-                    $t.before(ta);
-                    $t.remove()
-                return [tb, ta]
-            }
-            // if ($curElm[0].nodeType === 3) {
-            var start =  nodes[0][0],
-                n = nodes[nodes.length - 1],
+            var o = this,
+                sel = o.getInlines(),
+                nods = sel.nodes,
+                R = sel.rng,
+                start = nods[0][0],
+                n = nods[nods.length - 1],
                 end = n[n.length - 1],
-                sl = rng.start === rng.end; // single line selection
-            rng.start = nodes[0][0] = splitTextNode($(start), rng.so)[1];
-            if(sl){
-                end = rng.start;
-                rng.eo = rng.eo - rng.so;
+                sl = R.start === R.end; // single line selection
+
+            // only <br> tags can appear here but it will be handled by splitTextNode.
+            R.start = nods[0][0] = o.O.utils.splitTextNode($(start), R.so)[1];
+            if (sl) {
+                end = R.start;
+                R.eo = R.eo - R.so;
             }
-            rng.end = n[n.length - 1] = splitTextNode($(end), rng.eo)[0];
-            rng.so = 0;
-            if(sl){rng.start = rng.end}
-            
-            $.each(nodes, function (i, n) {
+            R.end = n[n.length - 1] = o.O.utils.splitTextNode($(end), R.eo)[0];
+            R.so = 0;
+            if (sl) {
+                R.start = R.end
+            }
+
+            $.each(nods, function (i, n) {
                 var created = modify(n);
 
                 // if we have modified selection containers update them.
-                if(n == rng.start)
-                    rng.start = created;
-                if(n == rng.end)
-                    rng.end = created;
+                if (n == R.start)
+                    R.start = created;
+                if (n == R.end)
+                    R.end = created;
             });
-            this.setRange(rng);
+            o.setRange(R);
         },
 
         /*
@@ -1134,6 +1147,27 @@
             var n = $('<p><br/></p>');
             $e.append(n);
             return n;
+        },
+
+        /*
+        * Splits a text node at given position. Does not splits if p is on edges.
+        * @param {jQuery textNode} $t the text node to split.
+        * @param {number} p the position to split at.
+        * @return {Array<textNode, textNode>} the pair of nodes splited.
+        * */
+        splitTextNode : function ($t, p) {
+            var txt = $t.text();
+            if(txt.length === p || p === 0){
+                // no need to create text nodes if selection is on the edge.
+                return [$t[0], $t[0]]
+            }
+            var tb = document.createTextNode(txt.substring(0, p)),          // text before caret.
+                ta = document.createTextNode(txt.substring(p, txt.length)); // text after caret.
+
+            $t.before(tb);
+            $t.before(ta);
+            $t.remove()
+            return [tb, ta]
         }
     };
 
