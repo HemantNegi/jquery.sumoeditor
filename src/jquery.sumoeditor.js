@@ -47,6 +47,10 @@
             ]
         },
 
+        /*
+        * A list of elements which we want to consider block elements (wtf :p)
+        * */
+        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, CODE:1, H1:1, H2:1, H3:1, H4:1, UL:1, OL:1},
 
         init: function () {
             // Introduce defaults that can be extended either
@@ -290,7 +294,7 @@
                 rng = O.selection.getRange(),
                 $curElm = $(rng.end),
                 pos = rng.eo,
-                $curBElm = $(O.selection.getBlockNode(rng.end)),
+                $curBElm = $(O.utils.getBlockNode(rng.end)),
                 $pivot,
                 fPivot = 0, // first $pivot.
                 D;
@@ -425,14 +429,14 @@
                     an = an == null ? O.utils.ancestorIs(first, tag): an;
 
                 if($(an).is(tag)){
-                    // TODO: create a function selection.wrap(startNode, endNode) 
+                    debugger;
+                    // TODO: create a function selection.wrap(startNode, endNode)
+
                 }
                 else{
                     // wrap tag around nodes.
-                    $(n).wrapAll('<'+ tag +'>');
-                    n.forEach(function(t){
-                        console.log(t);
-                    })
+                    // $(n).wrapAll('<'+ tag +'>');
+                    O.utils.wrapNodes(first, n[n.length - 1], tag)
                 }
 
 
@@ -532,29 +536,24 @@
         // REF: https://stackoverflow.com/questions/7781963/js-get-array-of-all-selected-nodes-in-contenteditable-div
 
         /*
-        * A list of elements which we want to consider block elements (wtf :p)
-        * */
-        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, CODE:1, H1:1, H2:1, H3:1, H4:1, UL:1, OL:1}, // using a map to keep lookup faster.
-
-        /*
         * Gets the block nodes in the selection.
         * @returns {{nodes: Array.<Element>, range: Object.<Range Object>}}
         * */
         getBlocks: function () {
-            var O = this,
-                rng = this.getRange(),
-                start = this.getBlockNode(rng.start),
-                end = this.getBlockNode(rng.end),
+            var o = this,
+                rng = o.getRange(),
+                start = o.O.utils.getBlockNode(rng.start),
+                end = o.O.utils.getBlockNode(rng.end),
                 nodes = [],
-                stNode = O.getRootNode(start),
-                enNode = O.getRootNode(end),
+                stNode = o.O.utils.getRootNode(start),
+                enNode = o.O.utils.getRootNode(end),
                 // recursively gets all the block child nodes of given node.
                 gbe = function(nod){
                     var be = [], m = !1, C=nod.childNodes;
                     for(var i=0; i<C.length; i++){
                         var n = C[i];
                         // if any of the child nodes is not a block node then break.
-                        if (n.tagName && O.BLOCK_ELEMENTS[n.tagName.toUpperCase()]){
+                        if (n.tagName && o.O.BLOCK_ELEMENTS[n.tagName.toUpperCase()]){
                             be.push(n);
                         }
                         else{
@@ -590,60 +589,34 @@
         },
 
         /*
-        * gets inline elements within the selection. It includes the complete edge rows.
-        * @return { nodes: {Array<Array<Element>>} the array of elements within the selection.,
-        *           rng: {rng}
+        * gets the text nodes within selection, splits the intersecting nodes.
+        * @param {Object<rng>} rng object.
+        * @return {Array<Array<Element>>} the array of textNodes within the selection.
         * */
-        getInlines: function () {
-            var O = this,
-                rng = O.getRange(),
-                nodes = [],
-                rStart = O.getRootNode(rng.start),
-                rEnd = O.getRootNode(rng.end),
-                f = 0, // false, a flag to add only elements within the rng.
-                gbe = function (nod) {
-                    var arr = [], m = 0, C = nod.childNodes;
-                    for (var i = 0; i < C.length; i++) {
-                        var n = C[i];
-                        if (!f && n == rng.start)f = 1; // start adding.
+        textNodes: function(rng){
+            var o = this,
+                nods = o.O.utils.textNodesWithin(rng.start, rng.end),
+                R = rng,
+                start = nods[0][0],
+                n = nods[nods.length - 1],
+                end = n[n.length - 1],
+                sl = R.start === R.end; // single line selection
 
-                        if (n.nodeType === 3 || $(n).is('BR')) {
-                            if (m == 1) {
-                                if (f)arr[arr.length - 1].push(n)
-                            }
-                            else {
-                                if (f) {
-                                    arr.push([n]);
-                                    m = 1
-                                }
-                            }
-                        } else {
-                            m = 0;
-                            var arr_ = gbe(n);
-                            if (arr_.length) arr = arr.concat(arr_);
-                        }
-
-                        if (f && n == rng.end)f = 0; // stop adding.
-                    }
-                    return arr
-                };
-
-            // if its a point selection.
-            if (rng.start === rng.end && rng.so === rng.eo) {
-                nodes.push([rng.start])
+            // only <br> tags can appear here but it will be handled by splitTextNode.
+            R.start = nods[0][0] = o.O.utils.splitTextNode($(start), R.so)[1];
+            if (sl) {
+                end = R.start;
+                R.eo = R.eo - R.so;
             }
-            else {
-                while (rStart) {
-                    nodes = nodes.concat(gbe(rStart));
-                    if (rStart === rEnd) break;
-                    rStart = rStart.nextSibling;
-                }
+            R.end = n[n.length - 1] = o.O.utils.splitTextNode($(end), R.eo)[0];
+            R.so = 0;
+            if (sl) {
+                R.start = R.end
             }
-
             return {
-                nodes: nodes,
-                rng: rng,
-            };
+                nods: nods,
+                rng: R
+            }
         },
 
         /*
@@ -721,37 +694,6 @@
         },
 
         /*
-        * gets immediate children of editor containing node.
-        * @returns {Element}
-        * */
-        getRootNode: function(node) {
-            return $(node).parentsUntil(this.O.editor).andSelf()[0];
-        },
-
-        /*
-        * gets a parent block element(elements in object BLOCK_ELEMENTS) OR
-        * immediate children of editor containing node.
-        * @param {Object=} node parent DOM block node.
-        * @returns {Object.<DOM Element>}
-        * */
-        getBlockNode: function(node) {
-            var self = this,
-                //node = node || self.getRange()
-                _node = null,
-                parents = $.merge([node], $(node).parentsUntil(this.O.editor));
-
-            $.each(parents, function (i, e) {
-                // ignore text nodes.
-                if(e.nodeType == 3) return;
-                if (self.BLOCK_ELEMENTS[e.tagName.toUpperCase()]) {
-                    _node = e;
-                    return false;
-                }
-            });
-            return _node || parents[0];
-        },
-
-        /*
         * Iterates over block elements, while preserving the selection.
         * @param {Callback} modify A callback function. it will be called for each
         *     Block element with Element as param. this callback function will have to return
@@ -783,27 +725,11 @@
         * */
         eachInline: function (modify) {
             var o = this,
-                sel = o.getInlines(),
-                nods = sel.nodes,
-                R = sel.rng,
-                start = nods[0][0],
-                n = nods[nods.length - 1],
-                end = n[n.length - 1],
-                sl = R.start === R.end; // single line selection
+                R = o.getRange(),
+                obj = o.textNodes(R),
+                R = obj.rng;
 
-            // only <br> tags can appear here but it will be handled by splitTextNode.
-            R.start = nods[0][0] = o.O.utils.splitTextNode($(start), R.so)[1];
-            if (sl) {
-                end = R.start;
-                R.eo = R.eo - R.so;
-            }
-            R.end = n[n.length - 1] = o.O.utils.splitTextNode($(end), R.eo)[0];
-            R.so = 0;
-            if (sl) {
-                R.start = R.end
-            }
-
-            $.each(nods, function (i, n) {
+            $.each(obj.nods, function (i, n) {
                 var created = modify(n);
 
                 // if we have modified selection containers update them.
@@ -850,7 +776,7 @@
         * */
         getBlock: function (pos) {
             var rng = this.O.selection.getRange(),
-                n = this.O.selection.getBlockNode(rng.start);
+                n = this.O.utils.getBlockNode(rng.start);
             if (pos) {
                 var p = this.getPos(n, rng);
                 /*
@@ -1040,6 +966,36 @@
         },
 
         /*
+        * gets a parent block element(elements in object BLOCK_ELEMENTS) OR
+        * immediate children of editor containing node.
+        * @param {Object=} node parent DOM block node.
+        * @returns {Object.<DOM Element>}
+        * */
+        getBlockNode: function(node) {
+            var o = this,
+                _node = null,
+                parents = $.merge([node], $(node).parentsUntil(this.O.editor));
+
+            $.each(parents, function (i, e) {
+                // ignore text nodes.
+                if(e.nodeType == 3) return;
+                if (o.O.BLOCK_ELEMENTS[e.tagName.toUpperCase()]) {
+                    _node = e;
+                    return false;
+                }
+            });
+            return _node || parents[0];
+        },
+
+        /*
+        * gets immediate children of editor containing node.
+        * @returns {Element}
+        * */
+        getRootNode: function(node) {
+            return $(node).parentsUntil(this.O.editor).andSelf()[0];
+        },
+
+        /*
         * Gets all text nodes inside the given Element `E`
         * @param {Element} E
         * @returns {Array.<Element>} text nodes in in-order traversal.
@@ -1057,6 +1013,76 @@
                 return arr
             }
             return tNodes(E, []);
+            // TODO: this function can be rewritten using textNodesWithin()
+        },
+
+        /*
+        * gets textNodes within the given start and end textNodes.
+        * @param {Element} start
+        * @param {Element} end
+        * @return {Array<Array<Element>>} textNodes within start and selection.
+        **/
+        textNodesWithin: function (start, end) {
+            var o = this,
+                nodes = [],
+                rStart = o.getRootNode(start),
+                rEnd = o.getRootNode(end),
+                f = 0, // false, a flag to add only elements within the rng.
+                gbe = function (nod) {
+                    var arr = [], m = 0, C = nod.childNodes;
+                    for (var i = 0; i < C.length; i++) {
+                        var n = C[i];
+                        if (!f && n == start)f = 1; // start adding.
+
+                        if (n.nodeType === 3 || $(n).is('BR')) {
+                            if (m == 1) {
+                                if (f)arr[arr.length - 1].push(n)
+                            }
+                            else {
+                                if (f) {
+                                    arr.push([n]);
+                                    m = 1
+                                }
+                            }
+                        } else {
+                            m = 0;
+                            var arr_ = gbe(n);
+                            if (arr_.length) arr = arr.concat(arr_);
+                        }
+
+                        if (f && n == end)f = 0; // stop adding.
+                    }
+                    return arr
+                };
+
+            // if its a single textNode.
+            // if (start === end && rng.so === rng.eo) {
+            if (start === end) {
+                nodes.push([start])
+            }
+            else {
+                while (rStart) {
+                    nodes = nodes.concat(gbe(rStart));
+                    if (rStart === rEnd) break;
+                    rStart = rStart.nextSibling;
+                }
+            }
+
+            return nodes
+        },
+
+        /*
+        * For now only text nodes are supported and they should be in line.
+        * @param {Element} start
+        * @param {Element} end
+        * @param {staring} tag
+        * @return <jQuery Element> the newly wrapped element.
+        * */
+        wrapNodes: function (start, end, tag) {
+            var $e = $('<' + tag + '>'),
+                n = start === end ? start : this.textNodesWithin(start, end)[0];
+            $(n).wrapAll($e);
+            return $e;
         },
 
         /*
@@ -1067,7 +1093,7 @@
         * */
         ancestorIs: function (e, tag) {
             while(e && e != this.O.editor){
-                if(e.tagName.toUpperCase() === tag.toUpperCase()){
+                if(e.nodeType !==3 && e.tagName.toUpperCase() === tag.toUpperCase()){
                     return e;
                 }
                 e = e.parentElement;
