@@ -426,17 +426,41 @@
 
             var nodes = O.selection.eachInline(function (n) {
                 var first = n[0],
-                    an = an == null ? O.utils.ancestorIs(first, tag): an;
+                    last = n[n.length - 1],
+                    m = O.utils.ancestorIs(first, tag),
+                    an = an == null ? m : an;
 
-                if($(an).is(tag)){
+                if(an){
                     debugger;
-                    // TODO: create a function selection.wrap(startNode, endNode)
+                    if(m){
+                            var txts = O.utils.textNodes(m),
 
+                            // for left side.
+                            end = txts.indexOf(first) - 1;
+                            if(end < 0) end = 0;
+                            nods = O.utils.textNodesWithin(txts[0], txts[end], tag);
+                            $(nods[0]).wrapAll('<'+ tag +'>');
+
+                            // now for right side.
+                            start = txts.indexOf(last) + 1;
+                            if(start >= txts.length-1) start = txts.length - 1;
+                            nods = O.utils.textNodesWithin(txts[start], txts[txts.length - 1], tag);
+                            $(nods[0]).wrapAll('<'+ tag +'>');
+                            
+
+                            $(m.childNodes[0]).unwrap();
+
+                    }
+
+
+//                     O.utils.unwrap()
                 }
                 else{
                     // wrap tag around nodes.
                     // $(n).wrapAll('<'+ tag +'>');
-                    O.utils.wrapNodes(first, n[n.length - 1], tag)
+                    if(!m){
+                        O.utils.wrapNodes(first, last, tag)
+                    }
                 }
 
 
