@@ -428,50 +428,52 @@
                 var first = n[0],
                     last = n[n.length - 1],
                     m = O.utils.ancestorIs(first, tag);
-                    an = an == null ? m : an;
+                an = an == null ? m : an;
 
-                if(an){
+                if (an) {
                     debugger;
-                    if(m){
-                            var txts = O.utils.textNodes(m),
+                    if (m) {
+                        var txts = O.utils.textNodes(m),
 
-                            // for left side.
+                        // for left side.
                             end = txts.indexOf(first) - 1;
-                            if(end >= 0){
-                                var nods = O.utils.textNodesWithin(txts[0], txts[end], tag);
-                                $(nods[0]).wrapAll('<'+ tag +'>');
-                            } else{
-                                end = 0;
-                            }
+                        if (end >= 0) {
+                            var nods = O.utils.textNodesWithin(txts[0], txts[end], tag);
+                            $(nods[0]).wrapAll('<' + tag + '>');
+                        } else {
+                            end = 0;
+                        }
 
-                            // now for right side.
-                            var start = txts.indexOf(last) + 1;
-                            if(start <= txts.length-1){ // both start and end are equal and no need to wrap.
-                                    nods = O.utils.textNodesWithin(txts[start], txts[txts.length - 1], tag);
-                                    $(nods[0]).wrapAll('<'+ tag +'>');
-                            }
-                            else{
-                                start = txts.length - 1;
-                            }
+                        // now for right side.
+                        var start = txts.indexOf(last) + 1;
+                        if (start <= txts.length - 1) { // both start and end are equal and no need to wrap.
+                            nods = O.utils.textNodesWithin(txts[start], txts[txts.length - 1], tag);
+                            $(nods[0]).wrapAll('<' + tag + '>');
+                        }
+                        else {
+                            start = txts.length - 1;
+                        }
 
-                            $(m.childNodes[0]).unwrap();
+                        $(m.childNodes[0]).unwrap();
                     }
 
                 }
-                else{
+                else {
                     // wrap tag around nodes.
                     // $(n).wrapAll('<'+ tag +'>');
-                    if(!m){
-                        if(isPoint){
+                    if (!m) {
+                        if (isPoint) {
 
-                            var  a_ = $('<br>');
-                            var n_ = $('<'+ tag +'>');
+                            var n_ = $('<' + tag + '>');
+//                             n_.append(document.createTextNode('-'));
+// insert an empty character here. 
+// REF: https://stackoverflow.com/questions/4063144/setting-the-caret-position-to-an-empty-node-inside-a-contenteditable-element
+                            n_.append("\u200B");
                             $(first).before(n_);
-                            n_.append(a_);
-                            n = a_[0];
+                            n = n_.contents()[0];
 
                         }
-                        else{
+                        else {
                             O.utils.wrapNodes(first, last, tag)
                         }
                     }
