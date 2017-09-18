@@ -424,10 +424,10 @@
         toggleInline: function (tag) {
             var O = this, an = null;
 
-            var nodes = O.selection.eachInline(function (n) {
+            var nodes = O.selection.eachInline(function (n, isPoint) {
                 var first = n[0],
                     last = n[n.length - 1],
-                    m = O.utils.ancestorIs(first, tag),
+                    m = O.utils.ancestorIs(first, tag);
                     an = an == null ? m : an;
 
                 if(an){
@@ -437,29 +437,43 @@
 
                             // for left side.
                             end = txts.indexOf(first) - 1;
-                            if(end < 0) end = 0;
-                            nods = O.utils.textNodesWithin(txts[0], txts[end], tag);
-                            $(nods[0]).wrapAll('<'+ tag +'>');
+                            if(end >= 0){
+                                var nods = O.utils.textNodesWithin(txts[0], txts[end], tag);
+                                $(nods[0]).wrapAll('<'+ tag +'>');
+                            } else{
+                                end = 0;
+                            }
 
                             // now for right side.
-                            start = txts.indexOf(last) + 1;
-                            if(start >= txts.length-1) start = txts.length - 1;
-                            nods = O.utils.textNodesWithin(txts[start], txts[txts.length - 1], tag);
-                            $(nods[0]).wrapAll('<'+ tag +'>');
-                            
+                            var start = txts.indexOf(last) + 1;
+                            if(start <= txts.length-1){ // both start and end are equal and no need to wrap.
+                                    nods = O.utils.textNodesWithin(txts[start], txts[txts.length - 1], tag);
+                                    $(nods[0]).wrapAll('<'+ tag +'>');
+                            }
+                            else{
+                                start = txts.length - 1;
+                            }
 
                             $(m.childNodes[0]).unwrap();
-
                     }
 
-
-//                     O.utils.unwrap()
                 }
                 else{
                     // wrap tag around nodes.
                     // $(n).wrapAll('<'+ tag +'>');
                     if(!m){
-                        O.utils.wrapNodes(first, last, tag)
+                        if(isPoint){
+
+                            var  a_ = $('<br>');
+                            var n_ = $('<'+ tag +'>');
+                            $(first).before(n_);
+                            n_.append(a_);
+                            n = a_[0];
+
+                        }
+                        else{
+                            O.utils.wrapNodes(first, last, tag)
+                        }
                     }
                 }
 
@@ -613,7 +627,7 @@
         },
 
         /*
-        * gets the text nodes within selection, splits the intersecting nodes.
+        * gets the text nodes within selection, this splits the intersecting nodes.
         * @param {Object<rng>} rng object.
         * @return {Array<Array<Element>>} the array of textNodes within the selection.
         * */
@@ -751,15 +765,16 @@
             var o = this,
                 R = o.getRange(),
                 obj = o.textNodes(R),
-                R = obj.rng;
+                R = obj.rng,
+                isPoint = R.start === R.end && R.so === R.eo;
 
             $.each(obj.nods, function (i, n) {
-                var created = modify(n);
+                var created = modify(n, isPoint);
 
                 // if we have modified selection containers update them.
-                if (n == R.start)
+                if (n[0] == R.start)
                     R.start = created;
-                if (n == R.end)
+                if (n[n.length - 1] == R.end)
                     R.end = created;
             });
             o.setRange(R);
