@@ -431,7 +431,7 @@
                 an = an == null ? m : an;
 
                 if (an) {
-                    debugger;
+                    
                     if (m) {
                         var txts = O.utils.textNodes(m),
 
@@ -463,15 +463,15 @@
                     // $(n).wrapAll('<'+ tag +'>');
                     if (!m) {
                         if (isPoint) {
+                            n = $('<' + tag + '>');
 
-                            var n_ = $('<' + tag + '>');
-//                             n_.append(document.createTextNode('-'));
-// insert an empty character here. 
-// REF: https://stackoverflow.com/questions/4063144/setting-the-caret-position-to-an-empty-node-inside-a-contenteditable-element
-                            n_.append("\u200B");
-                            $(first).before(n_);
-                            n = n_.contents()[0];
-
+                            // insert an empty character here.
+                            // REF: https://stackoverflow.com/questions/4063144/setting-the-caret-position-to-an-empty-node-inside-a-contenteditable-element
+                            var a = document.createTextNode('\u200B')
+                            // n.append('\u200B');
+                            n.append(a);
+                            $(first).before(n);
+                            n = [a];
                         }
                         else {
                             O.utils.wrapNodes(first, last, tag)
@@ -573,8 +573,6 @@
     * Selection module - contains all selection related methods.
     * */
     Editor.prototype.selection = {
-        // REF: https://stackoverflow.com/questions/7781963/js-get-array-of-all-selected-nodes-in-contenteditable-div
-
         /*
         * Gets the block nodes in the selection.
         * @returns {{nodes: Array.<Element>, range: Object.<Range Object>}}
@@ -771,13 +769,20 @@
                 isPoint = R.start === R.end && R.so === R.eo;
 
             $.each(obj.nods, function (i, n) {
-                var created = modify(n, isPoint);
+                // must return the nodes whether modified or not.
+                var cr = modify(n, isPoint);
 
                 // if we have modified selection containers update them.
                 if (n[0] == R.start)
-                    R.start = created;
+                    R.start = cr[0];
                 if (n[n.length - 1] == R.end)
-                    R.end = created;
+                    R.end = cr[cr.length - 1];
+
+                // exceptional ("\u200B") should be removed so include in selection.
+                if(isPoint && R.so == 0){
+                    //debugger;
+                    R.eo = 1;
+                }
             });
             o.setRange(R);
         },
