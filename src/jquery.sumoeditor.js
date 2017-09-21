@@ -422,65 +422,57 @@
          * tag: {string} valid name of an inline tag to create.
          */
         toggleInline: function (tag) {
-            var O = this, an = null;
+            var O = this,
+                an = null, // flag to apply uniform operation on the selection.
+                Tag = '<' + tag + '>';
 
-            var nodes = O.selection.eachInline(function (n, isPoint) {
-                var first = n[0],
+            O.selection.eachInline(function (n, isPoint) {
+                var T, first = n[0],
                     last = n[n.length - 1],
                     m = O.utils.ancestorIs(first, tag);
                 an = an == null ? m : an;
 
-                if (an) {
-                    
-                    if (m) {
-                        if(isPoint){
-                             var t = document.createTextNode('\u200B');
-                             first.before(t);
-                             first = last = t;
-                        }
-
-                        var txts = O.utils.textNodes(m),
-
-                        // for left side.
-                            end = txts.indexOf(first) - 1;
-                        if (end >= 0) {
-                            var nods = O.utils.textNodesWithin(txts[0], txts[end], tag);
-                            $(nods[0]).wrapAll('<' + tag + '>');
-                        } else {
-                            end = 0;
-                        }
-
-                        // now for right side.
-                        var start = txts.indexOf(last) + 1;
-                        if (start <= txts.length - 1) { // both start and end are equal and no need to wrap.
-                            nods = O.utils.textNodesWithin(txts[start], txts[txts.length - 1], tag);
-                            $(nods[0]).wrapAll('<' + tag + '>');
-                        }
-                        else {
-                            start = txts.length - 1;
-                        }
-
-                        $(m.childNodes[0]).unwrap();
-                    }
-
-                }
-                else {
-                    // wrap tag around nodes.
-                    // $(n).wrapAll('<'+ tag +'>');
-                    if (!m) {
-                        if (isPoint) {
-                            // insert an empty character here.
-                            // REF: https://stackoverflow.com/questions/4063144/setting-the-caret-position-to-an-empty-node-inside-a-contenteditable-element
-                            var t = document.createTextNode('\u200B')
-                            $(first).before($('<' + tag + '>').append(t));
-                            n = [t];
-                        }
-                        else {
-                            O.utils.wrapNodes(first, last, tag)
-                        }
-                    }
+                // if selection is collapsed we need a blank text node for manipulation.
+                // REF: https://stackoverflow.com/questions/4063144/setting-the-caret-position-to-an-empty-node-inside-a-contenteditable-element
+                if (isPoint) {
+                    T = document.createTextNode('\u200B');
+                    n = [T];
                 }
 
+                // unwrap selection.
+                if (an && m) {
+                    if (isPoint) {
+                        $(first).before(T);
+                        first = last = T;
+                    }
+                    var tN = O.utils.textNodes(m),
+                        end = tN.indexOf(first) - 1;
+
+                    // for left side.
+                    if (end >= 0) {
+                        var nods = O.utils.textNodesWithin(tN[0], tN[end], tag);
+                        $(nods[0]).wrapAll(Tag);
+                    }
+
+                    // now for right side.
+                    var start = tN.indexOf(last) + 1;
+                    if (start <= tN.length - 1) { // both start and end are equal and no need to wrap.
+                        nods = O.utils.textNodesWithin(tN[start], tN[tN.length - 1], tag);
+                        $(nods[0]).wrapAll(Tag);
+                    }
+
+                    $(m.childNodes[0]).unwrap();
+                }
+
+                // wrap selection.
+                if (!an && !m) {
+                    if (isPoint) {
+                        $(first).before($(Tag).append(T));
+                    }
+                    else {
+                        $(n).wrapAll(Tag);
+                    }
+                }
 
                 return n;
             });
@@ -1119,19 +1111,19 @@
             return nodes
         },
 
-        /*
+/*        /!*
         * For now only text nodes are supported and they should be in line.
         * @param {Element} start
         * @param {Element} end
         * @param {staring} tag
         * @return <jQuery Element> the newly wrapped element.
-        * */
+        * *!/
         wrapNodes: function (start, end, tag) {
             var $e = $('<' + tag + '>'),
                 n = start === end ? start : this.textNodesWithin(start, end)[0];
             $(n).wrapAll($e);
             return $e;
-        },
+        },*/
 
         /*
         * checks if `tag` is `e` or is an ancestor of `e`
@@ -1296,17 +1288,23 @@
         },
         italic: function () {
             return {
-                ico: 'italic'
+                ico: 'italic',
+                typ: 'inline',
+                tag: 'em'
             }
         },
         underline: function () {
             return {
-                ico: 'underline'
+                ico: 'underline',
+                typ: 'inline',
+                tag: 'u'
             }
         },
         strike: function () {
             return {
-                ico: 'strike'
+                ico: 'strike',
+                typ: 'inline',
+                tag: 's'
             }
         },
         indent: function () {
@@ -1316,10 +1314,18 @@
             return {ico: 'unindent'}
         },
         sub: function () {
-            return {ico: 'sub'}
+            return {
+                ico: 'sub',
+                typ: 'inline',
+                tag: 'sub'
+            }
         },
         sup: function () {
-            return {ico: 'sup'}
+            return {
+                ico: 'sup',
+                typ: 'inline',
+                tag: 'sup'
+            }
         },
         clean:function () {
             return {
