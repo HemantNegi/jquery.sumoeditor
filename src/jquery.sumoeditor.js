@@ -433,6 +433,12 @@
                 if (an) {
                     
                     if (m) {
+                        if(isPoint){
+                             var t = document.createTextNode('\u200B');
+                             first.before(t);
+                             first = last = t;
+                        }
+
                         var txts = O.utils.textNodes(m),
 
                         // for left side.
@@ -463,15 +469,11 @@
                     // $(n).wrapAll('<'+ tag +'>');
                     if (!m) {
                         if (isPoint) {
-                            n = $('<' + tag + '>');
-
                             // insert an empty character here.
                             // REF: https://stackoverflow.com/questions/4063144/setting-the-caret-position-to-an-empty-node-inside-a-contenteditable-element
-                            var a = document.createTextNode('\u200B')
-                            // n.append('\u200B');
-                            n.append(a);
-                            $(first).before(n);
-                            n = [a];
+                            var t = document.createTextNode('\u200B')
+                            $(first).before($('<' + tag + '>').append(t));
+                            n = [t];
                         }
                         else {
                             O.utils.wrapNodes(first, last, tag)
