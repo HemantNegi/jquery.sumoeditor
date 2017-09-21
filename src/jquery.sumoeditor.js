@@ -627,12 +627,16 @@
         * */
         textNodes: function(rng){
             var o = this,
+                ep = 0,
                 nods = o.O.utils.textNodesWithin(rng.start, rng.end),
                 R = rng,
                 start = nods[0][0],
                 n = nods[nods.length - 1],
                 end = n[n.length - 1],
                 sl = R.start === R.end; // single line selection
+            if(sl && R.so === R.eo && $(R.start).text().length === R.eo){
+                ep = 1;
+            }
 
             // only <br> tags can appear here but it will be handled by splitTextNode.
             R.start = nods[0][0] = o.O.utils.splitTextNode($(start), R.so)[1];
@@ -645,6 +649,12 @@
             if (sl) {
                 R.start = R.end
             }
+
+            //
+            if(sl && R.so == R.eo){
+                
+            }
+
             return {
                 nods: nods,
                 rng: R
