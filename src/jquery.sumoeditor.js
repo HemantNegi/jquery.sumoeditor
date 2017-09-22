@@ -426,25 +426,14 @@
                 an = null, // flag to apply uniform operation on the selection.
                 Tag = '<' + tag + '>';
 
-            O.selection.eachInline(function (n, isPoint) {
+            O.selection.eachInline(function (n) {
                 var T, first = n[0],
                     last = n[n.length - 1],
                     m = O.utils.ancestorIs(first, tag);
                 an = an == null ? m : an;
 
-                // if selection is collapsed we need a blank text node for manipulation.
-                // REF: https://stackoverflow.com/questions/4063144/setting-the-caret-position-to-an-empty-node-inside-a-contenteditable-element
-                if (isPoint) {
-                    T = document.createTextNode('\u200B');
-                    n = [T];
-                }
-
                 // unwrap selection.
                 if (an && m) {
-                    if (isPoint) {
-                        $(first).before(T);
-                        first = last = T;
-                    }
                     var tN = O.utils.textNodes(m),
                         end = tN.indexOf(first) - 1;
 
@@ -466,12 +455,7 @@
 
                 // wrap selection.
                 if (!an && !m) {
-                    if (isPoint) {
-                        $(first).before($(Tag).append(T));
-                    }
-                    else {
-                        $(n).wrapAll(Tag);
-                    }
+                    $(n).wrapAll(Tag);
                 }
 
                 return n;
@@ -650,9 +634,15 @@
                 R.start = R.end
             }
 
-            //
+            // if selection is collapsed we need a blank text node for manipulation.
+            // REF: https://stackoverflow.com/questions/4063144/setting-the-caret-position-to-an-empty-node-inside-a-contenteditable-element
             if(sl && R.so == R.eo){
-                
+                var t = document.createTextNode('\u200B');
+                ep ? $(R.end).after(t): $(R.end).before(t);
+                nods = [[t]];
+                R.start = R.end = t;
+                // we will keep that empty text selected, so when user starts typing it will be removed.
+                R.eo = 1;
             }
 
             return {
@@ -774,7 +764,7 @@
 
             $.each(obj.nods, function (i, n) {
                 // must return the nodes whether modified or not.
-                var cr = modify(n, isPoint);
+                var cr = modify(n);
 
                 // if we have modified selection containers update them.
                 if (n[0] == R.start)
