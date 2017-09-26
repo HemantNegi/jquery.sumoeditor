@@ -425,9 +425,10 @@
             var O = this,
                 an = null, // flag to apply uniform operation on the selection.
                 Tag = '<' + tag + '>';
+                // Tag = '<a href="http://good.com">';
 
             O.selection.eachInline(function (n) {
-                var T, first = n[0],
+                var first = n[0],
                     last = n[n.length - 1],
                     m = O.utils.ancestorIs(first, tag);
                 an = an == null ? m : an;
@@ -489,6 +490,26 @@
                 }
 
                 return $elm[0];
+            });
+        },
+
+        linkHandler: function () {
+            var O = this,
+                an = null, // flag to apply uniform operation on the selection.
+                Tag = '<' + tag + '>';
+                // Tag = '<a href="http://good.com">';
+
+            O.selection.eachInline(function (n) {
+                var first = n[0],
+                    m = O.utils.ancestorIs(first, tag);
+                an = an == null ? m : an;
+
+                // wrap selection.
+                if (!an && !m) {
+                    $(n).wrapAll(Tag);
+                }
+
+                return n;
             });
         },
 
@@ -1308,10 +1329,14 @@
             }
         },
         link: function () {
+            var O = this;
             return {
                 ico: 'link',
-                typ: 'inline',
-                tag: 'a'
+                tag: 'a',
+                onclick: function () {
+                    O.linkHandler();
+                }
+                // typ: 'inline',
             }
         },
         indent: function () {
