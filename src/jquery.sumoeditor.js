@@ -33,7 +33,7 @@
                 ['quote', 'code'],
 
                 [{'header': 1}, {'header': 2}],               // custom button values
-                ['ol', 'ul', 'indent', 'unindent', 'sub', 'sup'],
+                ['ol', 'ul', 'indent', 'unindent', 'sub', 'sup', 'link'],
                 [{'direction': 'rtl'}],                         // text direction
 
                 [{'size': ['small', false, 'large', 'huge']}],  // custom dropdown
@@ -1305,6 +1305,13 @@
                 ico: 'strike',
                 typ: 'inline',
                 tag: 's'
+            }
+        },
+        link: function () {
+            return {
+                ico: 'link',
+                typ: 'inline',
+                tag: 'a'
             }
         },
         indent: function () {
