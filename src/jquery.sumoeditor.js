@@ -496,12 +496,12 @@
         linkHandler: function () {
             var O = this,
                 an = null, // flag to apply uniform operation on the selection.
-                Tag = '<' + tag + '>';
+                Tag = '<a>';
                 // Tag = '<a href="http://good.com">';
 
             O.selection.eachInline(function (n) {
                 var first = n[0],
-                    m = O.utils.ancestorIs(first, tag);
+                    m = O.utils.ancestorIs(first, 'a');
                 an = an == null ? m : an;
 
                 // wrap selection.
