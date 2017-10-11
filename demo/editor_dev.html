@@ -43,20 +43,29 @@
     <div class="container">
         <h1>Easy editor <span>Insert image url example</span></h1>
         <p class="p">Sample image url - <a href="http://placehold.it/500x300">http://placehold.it/500x300</a></p>
-        <div class="sumoeditor name-attr"><div class="toolbar"><span class="grp"><button class="sumo-bold"></button><button class="sumo-italic"></button><button class="sumo-underline"></button><button class="sumo-strike"></button></span><span class="grp"><button class="sumo-quote"></button><button class="sumo-code"></button></span><span class="grp"></span><span class="grp"><button class="sumo-ol"></button><button class="sumo-ul"></button><button class="sumo-indent"></button><button class="sumo-unindent"></button><button class="sumo-sub"></button><button class="sumo-sup"></button><button class="sumo-link"></button></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"><button class="sumo-clean"></button></span></div><div class="editor" contenteditable="true" tab-index="1" placeholder="Start writing here..."><p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. </p><ol><li>Lo<a>rem Ipsum has been the industr</a>y's<br>&nbsp;standard dummy text ever since the </li><li>1500s, when an unknown<br>&nbsp;printer took a galley of type</li><li> and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was</li></ol><p>popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p></div>
-        <div class="sumomodal">
+<!--        <div class="sumoeditor name-attr"><div class="toolbar"><span class="grp"><button class="sico-bold"></button><button class="sico-italic"></button><button class="sico-underline"></button><button class="sico-strike"></button></span><span class="grp"><button class="sico-quote"></button><button class="sico-code"></button></span><span class="grp"></span><span class="grp"><button class="sico-ol"></button><button class="sico-ul"></button><button class="sico-indent"></button><button class="sico-unindent"></button><button class="sico-sub"></button><button class="sico-sup"></button><button class="sico-link"></button></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"><button class="sico-clean"></button></span></div><div class="editor" contenteditable="true" tab-index="1" placeholder="Start writing here..."><p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. </p><ol><li>Lo<a>rem Ipsum has been the industr</a>y's<br>&nbsp;standard dummy text ever since the </li><li>1500s, when an unknown<br>&nbsp;printer took a galley of type</li><li> and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was</li></ol><p>popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p></div>
+        <div class="sumo-modal">
+            <form>
+                <p><label for="sumo_lnk_txt">Text</label><span><input id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>
+                <p><label for="sumo_lnk">Link</label><span><input id="sumo_lnk" placeholder="http://quesapp.com" type="text"/></span></p>
+                <p><span class="_lst">
+                    <label class="sumo-chbox"><input type="checkbox"/><span></span>New tab</label>
+                </span> <input type="submit" value="Apply"/></p>
+            </form>
+        </div>-->
+    <!--        <div class="sumomodal">
             <div class="sumoback"></div>
             <form>
                 <div class="sumocont">
                     <a>&times;</a>
-                    <p><label>Text</label><span><input placeholder="Display text" type="text"/></span></p>
-                    <p><label>Link</label><span><input placeholder="http://quesapp.com" type="text"/></span></p>
+                    <p><label for="sumo_lnk_txt">Text</label><span><input id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>
+                    <p><label for="sumo_lnk">Link</label><span><input id="sumo_lnk" placeholder="http://quesapp.com" type="text"/></span></p>
                     <p><label></label><span><input id="sumo_chk" type="checkbox"/><label for="sumo_chk">Open in new tab</label></span></p>
                     <p><input type="checkbox"/><input type="submit" value="OK"/></p>
                 </div>
             </form>
         </div>
-        </div>
+        </div>-->
         <!-- sumoeditor wil apply in this textarea -->
         <textarea style="margin-top:50px;" id="editor" name="name-attr" placeholder="Type here ... "><p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. </p><ol><li>Lorem Ipsum has been the industry's<br>&nbsp;standard dummy text ever since the </li><li>1500s, when an unknown<br>&nbsp;printer took a galley of type</li><li> and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was</li></ol><p>popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p></textarea>
 
@@ -66,7 +75,7 @@
         <script src="../src/jquery.sumoeditor.js"></script>
 
         <script>
-            //var a = $('#editor').sumoeditor();
+            var a = $('#editor').sumoeditor();
 
         </script>
     </div>

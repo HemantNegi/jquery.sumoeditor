@@ -9,7 +9,7 @@
   font-style: normal;
 }
 
-[class^="sumo-"], [class*=" sumo-"] {
+[class^="sico-"], [class*=" sico-"] {
   /* use !important to prevent issues with browser extensions that change fonts */
   font-family: 'sumoeditor' !important;
   speak: none;
@@ -24,97 +24,96 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.sumo-strike:before {
+.sico-strike:before {
   content: "\61";
 }
-.sumo-quote:before {
+.sico-quote:before {
   content: "\62";
 }
-.sumo-code:before {
+.sico-code:before {
   content: "\63";
 }
-.sumo-align-center:before {
+.sico-align-center:before {
   content: "\64";
 }
-.sumo-align-justify:before {
+.sico-align-justify:before {
   content: "\65";
 }
-.sumo-align-left:before {
+.sico-align-left:before {
   content: "\66";
 }
-.sumo-align-right:before {
+.sico-align-right:before {
   content: "\67";
 }
-.sumo-bold:before {
+.sico-bold:before {
   content: "\68";
 }
-.sumo-clean:before {
+.sico-clean:before {
   content: "\69";
 }
-.sumo-background:before {
+.sico-background:before {
   content: "\6a";
 }
-.sumo-color-text:before {
+.sico-color-text:before {
   content: "\6b";
 }
-.sumo-indent:before {
+.sico-indent:before {
   content: "\6c";
 }
-.sumo-unindent:before {
+.sico-unindent:before {
   content: "\6d";
 }
-.sumo-italic:before {
+.sico-italic:before {
   content: "\6e";
 }
-.sumo-line-style:before {
+.sico-line-style:before {
   content: "\6f";
 }
-.sumo-ul:before {
+.sico-ul:before {
   content: "\70";
 }
-.sumo-ol:before {
+.sico-ol:before {
   content: "\71";
 }
-.sumo-sub:before {
+.sico-sub:before {
   content: "\72";
 }
-.sumo-sup:before {
+.sico-sup:before {
   content: "\73";
 }
-.sumo-underline:before {
+.sico-underline:before {
   content: "\74";
 }
-.sumo-fullscreen:before {
+.sico-fullscreen:before {
   content: "\75";
 }
-.sumo-equation:before {
+.sico-equation:before {
   content: "\76";
 }
-.sumo-image:before {
+.sico-image:before {
   content: "\77";
 }
-.sumo-link:before {
+.sico-link:before {
   content: "\78";
 }
-.sumo-down-arrow:before {
+.sico-down-arrow:before {
   content: "\79";
 }
-.sumo-omega:before {
+.sico-omega:before {
   content: "\7a";
 }
-.sumo-redo:before {
+.sico-redo:before {
   content: "\41";
 }
-.sumo-undo:before {
+.sico-undo:before {
   content: "\42";
 }
-.sumo-video:before {
+.sico-video:before {
   content: "\43";
 }
 
 /* ====== SUMOEDITOR STYLES ====== */
-.sumoeditor{
-}
+.sumoeditor{position: relative;}
 .sumoeditor *{
     margin: 0;
     padding: 0;
@@ -153,11 +152,80 @@
 /* modals */
 .sumo-modal{
     position: absolute;
+    top: 80px;
+    left: 23px;
     background-color: #fff;
-    box-shadow: 0px 1px 10px rgba(0, 0, 0, 0.5);
-    z-index: 100;
-    border-radius: 3px;
+    padding: 10px;
+    border: 1px solid;
+    box-shadow: 0 1px 8px rgba(0,0,0,.2);
+    border-color: #ccc #ccc #cacaca;
+    font-size: 13px;
+    color: #444;
 }
+
+.sumo-modal p {position: relative;padding-left: 35px;margin-bottom: 6px;height: 25px;}
+
+.sumo-modal p > label{
+    position: absolute;
+    left: 0;
+    line-height: 25px;
+}
+.sumo-modal p span{
+    display: block;
+}
+.sumo-modal p ._lst{
+    padding-top: 4px;
+}
+.sumo-modal p span input[type="text"]{width: 100%;box-sizing: border-box;border-radius: 1px;border: 1px solid #d9d9d9;border-top: 1px solid #c0c0c0;font-size: 13px;height: 27px;padding: 1px 8px;}
+.sumo-modal p span input[type="text"]:focus{
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+    border: 1px solid #4d90fe;
+    outline: none;
+}
+
+.sumo-chbox{
+    position: relative;
+    line-height: 13px;
+    padding: 5px 0 0 22px;
+    display: block;
+    white-space: nowrap;
+}
+.sumo-chbox input{
+    display: none;
+}
+.sumo-chbox span {
+    position: absolute;
+    left: 0;
+    top: 4px;
+    border-radius: 2px;
+    border: 1px solid #aaa;
+    width: 13px;
+    height: 13px;
+    display: block;
+    box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.15);
+}
+.sumo-chbox input:checked + span{
+    background-color: #4d90fe;
+    border-color: #2175ff;
+    box-shadow: none;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAYAAAD+Bd/7AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNXG14zYAAABMSURBVAiZfc0xDkAAFIPhd2Kr1WRjcAExuIgzGUTIZ/AkImjSofnbNBAfHvzAHjOKNzhiQ42IDFXCDivaaxAJd0xYshT3QqBxqnxeHvhunpu23xnmAAAAAElFTkSuQmCC');
+    background-repeat: no-repeat;
+    background-position: center center;
+}
+
+.sumo-modal input[type="submit"]{
+    position: absolute;
+    right: 0;
+    top: 2px;
+    padding: 5px 15px;
+    color: #fff;
+    background-color: #4d90fe;
+    border: 1px solid #3480ff;
+    border-radius: 2px;
+    cursor: pointer;
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.25);
+}
+
 
 /* Content styling */
 .editor p {

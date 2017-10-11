@@ -123,12 +123,13 @@
         * */
         createButton: function (def) {
             var O = this,
-                btn = $('<button>').addClass('sumo-' + def.ico);
+                btn = $('<button>').addClass('sico-' + def.ico);
 
             if(def.rmOnBkSpace) this.bkArr.push(def.tag);
 
             btn.on('click', function (evt) {
                 evt.preventDefault();
+                evt.stopPropagation();
 
                 if(typeof def.onclick === 'function')
                     def.onclick.call(this, def);
@@ -185,6 +186,11 @@
 
             });
 
+            // toolbar click handler.
+            O.$toolbar.on('click', function () {
+                O.utils.modal();
+            })
+
             // caret position update.
             O.$editor.on('keyup click', function (evt) {
                 // #HISTORY
@@ -194,7 +200,7 @@
                 // O.cursorPos = n;
                 // console.log('pos: ', n, 'node: ', node);
                 O.getContent();
-
+                O.utils.modal();
             });
 
             // handle key presses.
@@ -210,6 +216,9 @@
                 }
                 else if (e.keyCode === 13 && e.shiftKey !== true) {
                     pd = O.breakLine();
+                }
+                else if (e.keyCode == 27){
+                    O.utils.modal();
                 }
 
                 // update contents of underlying actual element.
@@ -499,18 +508,28 @@
                 Tag = '<a>';
                 // Tag = '<a href="http://good.com">';
 
-            O.selection.eachInline(function (n) {
-                var first = n[0],
-                    m = O.utils.ancestorIs(first, 'a');
-                an = an == null ? m : an;
+            O.selection.eachInline(
+                function (n) {
+                    var first = n[0],
+                        m = O.utils.ancestorIs(first, 'a');
+                    an = an == null ? m : an;
 
-                // wrap selection.
-                if (!an && !m) {
-                    $(n).wrapAll(Tag);
+                    // wrap selection.
+                    if (!an && !m) {
+                        $(n).wrapAll(Tag);
+                    }
+
+                    return n;
+                },
+                function () {
+                    var $c = '<p><label for="sumo_lnk_txt">Text</label><span><input id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>' +
+                        '<p><label for="sumo_lnk">Link</label><span><input id="sumo_lnk" placeholder="http://quesapp.com" type="text"/></span></p>' +
+                        '<p><span class="_lst"><label class="sumo-chbox"><input type="checkbox"/><span></span>New tab</label></span>' +
+                        '<input type="submit" value="Apply"/></p>';
+
+                    O.utils.modal($c);
                 }
-
-                return n;
-            });
+            );
         },
 
         /*
@@ -776,12 +795,15 @@
         *     this callback function will have to return the newly created Element
         *     if any, or the same element passed as an argument.
         * */
-        eachInline: function (modify) {
+        eachInline: function (modify, before) {
             var o = this,
                 R = o.getRange(),
                 obj = o.textNodes(R),
                 R = obj.rng,
                 isPoint = R.start === R.end && R.so === R.eo;
+
+            // this will help in preserving selection while prompting the user.
+            if(before)before();
 
             $.each(obj.nods, function (i, n) {
                 // must return the nodes whether modified or not.
@@ -793,7 +815,7 @@
                 if (n[n.length - 1] == R.end)
                     R.end = cr[cr.length - 1];
 
-                // exceptional ("\u200B") should be removed so include in selection.
+                // Exceptional: ("\u200B") should be removed so include in selection.
                 if(isPoint && R.so == 0){
                     //debugger;
                     R.eo = 1;
@@ -1255,6 +1277,29 @@
             $t.before(ta);
             $t.remove()
             return [tb, ta]
+        },
+
+        /*
+        * Toggles the modal pop up eg. insert link.
+        * @params {jQuery Element} $c the dom subtree to display in popup.
+        * */
+        modal: function ($c) {
+            var o = this,
+                $m = o.O.$wrapper.find('.sumo-modal');
+            if($m.length) {
+                $m.remove();
+                return
+            }
+            if(!$c)return;
+
+            var $j = $('<form>').on('submit', function (e) {
+                e.stopPropagation();
+                return false;
+            });
+            $m = $('<div class="sumo-modal">')
+            $m.append($j);
+            o.O.$wrapper.append($m);
+            $j.append($c)
         }
     };
 
