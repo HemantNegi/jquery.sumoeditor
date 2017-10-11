@@ -450,14 +450,14 @@
                     // for left side.
                     if (end >= 0) {
                         var nods = O.utils.textNodesWithin(tN[0], tN[end], tag);
-                        $(nods[0]).wrapAll(Tag);
+                        nods.forEach(function (x) {$(x).wrapAll(Tag);})
                     }
 
                     // now for right side.
                     var start = tN.indexOf(last) + 1;
                     if (start <= tN.length - 1) { // both start and end are equal and no need to wrap.
                         nods = O.utils.textNodesWithin(tN[start], tN[tN.length - 1], tag);
-                        $(nods[0]).wrapAll(Tag);
+                        nods.forEach(function (x) {$(x).wrapAll(Tag);})
                     }
 
                     $(m.childNodes[0]).unwrap();
@@ -502,34 +502,53 @@
             });
         },
 
+        /*
+        * handles links
+        * */
         linkHandler: function () {
             var O = this,
-                an = null, // flag to apply uniform operation on the selection.
-                Tag = '<a>';
-                // Tag = '<a href="http://good.com">';
+                R = O.selection.getRange(),
+                isPoint = R.start === R.end && R.so === R.eo,
+                obj = O.selection.textNodes(R), // preserve the selection.
 
-            O.selection.eachInline(
-                function (n) {
+                // modal markup.
+                $c = (isPoint ? '<p><label for="sumo_lnk_txt">Text</label><span><input name="sumo_lnk_txt" id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>' : '')+
+                    '<p><label for="sumo_lnk">Link</label><span><input name="sumo_lnk" id="sumo_lnk" placeholder="http://quesapp.com" type="text"/></span></p>' +
+                    '<p><span class="_lst"><label class="sumo-chbox"><input name="sumo_chkbx" type="checkbox"/><span></span>New tab</label></span>' +
+                    '<input type="submit" value="Apply"/></p>';
+
+            O.utils.modal($c, function (D) {
+                var an = null,   // flag to apply uniform operation on the selection.
+                    $tag = $('<a>');
+
+                O.selection.eachInline(function (n) {
                     var first = n[0],
-                        m = O.utils.ancestorIs(first, 'a');
-                    an = an == null ? m : an;
+                        a = O.utils.ancestorIs(first, 'a');
+                    an = an == null ? a : an;
 
                     // wrap selection.
-                    if (!an && !m) {
-                        $(n).wrapAll(Tag);
+                    var $a = $(a);
+                    if (!an && !a) {
+                        $(n).wrapAll($tag);
+                        $a = $(n).parent();
+                        if(isPoint){
+                            $a.text(D.sumo_lnk_txt);
+                            n = $a.contents();
+                        }
+                    }
+
+                    $a.attr('href', D.sumo_lnk);
+                    if(D.sumo_chkbx) {
+                        $a.attr('target', '_blank')
+                    }
+                    else{
+                        $a.removeAttr('target')
                     }
 
                     return n;
-                },
-                function () {
-                    var $c = '<p><label for="sumo_lnk_txt">Text</label><span><input id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>' +
-                        '<p><label for="sumo_lnk">Link</label><span><input id="sumo_lnk" placeholder="http://quesapp.com" type="text"/></span></p>' +
-                        '<p><span class="_lst"><label class="sumo-chbox"><input type="checkbox"/><span></span>New tab</label></span>' +
-                        '<input type="submit" value="Apply"/></p>';
-
-                    O.utils.modal($c);
-                }
-            );
+                }, obj);
+                console.log('clicked om')
+            });
         },
 
         /*
@@ -794,16 +813,17 @@
         *     line with line as array of nodes(text and BR mostly) as param.
         *     this callback function will have to return the newly created Element
         *     if any, or the same element passed as an argument.
+        * @param {Object=} obj the textNodes object
         * */
-        eachInline: function (modify, before) {
-            var o = this,
-                R = o.getRange(),
-                obj = o.textNodes(R),
-                R = obj.rng,
-                isPoint = R.start === R.end && R.so === R.eo;
+        eachInline: function (modify, obj) {
+            var o = this, R;
+            if(!obj) {
+                R = o.getRange();
+                obj = o.textNodes(R);
+            }
 
-            // this will help in preserving selection while prompting the user.
-            if(before)before();
+            R = obj.rng
+            // var isPoint = R.start === R.end && R.so === R.eo;
 
             $.each(obj.nods, function (i, n) {
                 // must return the nodes whether modified or not.
@@ -812,14 +832,16 @@
                 // if we have modified selection containers update them.
                 if (n[0] == R.start)
                     R.start = cr[0];
-                if (n[n.length - 1] == R.end)
+                if (n[n.length - 1] == R.end) {
                     R.end = cr[cr.length - 1];
-
-                // Exceptional: ("\u200B") should be removed so include in selection.
-                if(isPoint && R.so == 0){
-                    //debugger;
-                    R.eo = 1;
+                    R.eo = R.end.textContent.length
                 }
+
+                // TODO: Cleanup if never occur- Exceptional: ("\u200B") should be removed so include in selection.
+                // if(isPoint && R.so == 0){
+                //     debugger;
+                //     R.eo = 1;
+                // }
             });
             o.setRange(R);
         },
@@ -1282,8 +1304,9 @@
         /*
         * Toggles the modal pop up eg. insert link.
         * @params {jQuery Element} $c the dom subtree to display in popup.
+        * @param {Callback} cb triggers when form is submitted. passed form data as object.
         * */
-        modal: function ($c) {
+        modal: function ($c, cb) {
             var o = this,
                 $m = o.O.$wrapper.find('.sumo-modal');
             if($m.length) {
@@ -1292,14 +1315,20 @@
             }
             if(!$c)return;
 
-            var $j = $('<form>').on('submit', function (e) {
+            var $f = $('<form>').on('submit', function (e) {
                 e.stopPropagation();
+                var D = {};
+                $(this).serializeArray().forEach(function(x){
+	                D[x.name] = x.value
+                })
+                if(cb && !cb(D)) $m.remove();
                 return false;
             });
             $m = $('<div class="sumo-modal">')
-            $m.append($j);
+            $m.append($f);
             o.O.$wrapper.append($m);
-            $j.append($c)
+            $f.append($c)
+            $f.find('input').first().focus();
         }
     };
 
