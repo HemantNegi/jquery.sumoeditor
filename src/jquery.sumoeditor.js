@@ -52,6 +52,9 @@
         * */
         BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, CODE:1, H1:1, H2:1, H3:1, H4:1, UL:1, OL:1},
 
+        /* An object to keep reference to created buttons */
+        REG_BUTTONS: {},
+
         init: function () {
             // Introduce defaults that can be extended either
             // globally or using an object literal.
@@ -148,6 +151,10 @@
                 O.getContent();
             })
 
+            def.btn = btn;
+            if(def.tag) {
+                O.REG_BUTTONS[def.tag.toUpperCase()] = def;
+            }
             return btn;
         },
 
@@ -201,6 +208,7 @@
                 // console.log('pos: ', n, 'node: ', node);
                 O.getContent();
                 O.utils.modal();
+                O.highlighter();
             });
 
             // handle key presses.
@@ -387,6 +395,19 @@
             return !0;
         },
 
+        highlighter: function() {
+            var O = this,
+                rng = O.selection.getRange();
+            $(rng.end).parents().each(function(i, x) {
+                var btn = O.REG_BUTTONS[x.tagName.toUpperCase()];
+                if(btn){
+                    // TODO: implement highlighting of buttons here.
+                    if(btn.high)btn.high.call(O);
+                }
+            })
+            O.utils.ancestorIs(rng.end, 'a')
+        },
+
         /*
          * block: {string} valid name of tag to create
          */
@@ -509,46 +530,68 @@
             var O = this,
                 R = O.selection.getRange(),
                 isPoint = R.start === R.end && R.so === R.eo,
-                obj = O.selection.textNodes(R), // preserve the selection.
 
                 // modal markup.
-                $c = (isPoint ? '<p><label for="sumo_lnk_txt">Text</label><span><input name="sumo_lnk_txt" id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>' : '')+
+                $c = $((isPoint ? '<p><label for="sumo_lnk_txt">Text</label><span><input name="sumo_lnk_txt" id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>' : '') +
                     '<p><label for="sumo_lnk">Link</label><span><input name="sumo_lnk" id="sumo_lnk" placeholder="http://quesapp.com" type="text"/></span></p>' +
-                    '<p><span class="_lst"><label class="sumo-chbox"><input name="sumo_chkbx" type="checkbox"/><span></span>New tab</label></span>' +
-                    '<input type="submit" value="Apply"/></p>';
+                    '<p><span class="_lst"><label class="sumo-chbox"><input id="sumo_chkbx" name="sumo_chkbx" type="checkbox"/><span></span>New tab</label></span>' +
+                    '<input type="submit" value="Apply"/></p>'),
 
-            O.utils.modal($c, function (D) {
-                var an = null,   // flag to apply uniform operation on the selection.
-                    $tag = $('<a>');
-
-                O.selection.eachInline(function (n) {
-                    var first = n[0],
-                        a = O.utils.ancestorIs(first, 'a');
-                    an = an == null ? a : an;
-
-                    // wrap selection.
-                    var $a = $(a);
-                    if (!an && !a) {
-                        $(n).wrapAll($tag);
-                        $a = $(n).parent();
-                        if(isPoint){
-                            $a.text(D.sumo_lnk_txt);
-                            n = $a.contents();
-                        }
-                    }
-
+                setA = function ($a, D) {
                     $a.attr('href', D.sumo_lnk);
-                    if(D.sumo_chkbx) {
+                    if (D.sumo_chkbx) {
                         $a.attr('target', '_blank')
                     }
-                    else{
+                    else {
                         $a.removeAttr('target')
                     }
+                };
 
-                    return n;
-                }, obj);
-                console.log('clicked om')
-            });
+            // if already in <a> but point selection.
+            var _a = O.utils.ancestorIs(R.end, 'a')
+            if(isPoint && _a){
+                _a = $(_a);
+                O.utils.modal($c, function (D) {
+                    _a.text(D.sumo_lnk_txt);
+                    setA(_a, D);
+                });
+                $c.find('#sumo_lnk_txt').val(_a.text());
+                $c.find('#sumo_lnk').val(_a.attr('href'));
+                $c.find('#sumo_chkbx')[0].checked= _a.attr('target');
+            }
+            else {
+                O.utils.modal($c, function (D) {
+                    var an = null,   // flag to apply uniform operation on the selection.
+                        obj = O.selection.textNodes(R), // preserve the selection.
+                        $tag = $('<a>');
+
+                    O.selection.eachInline(function (n) {
+                        var first = n[0],
+                            a = O.utils.ancestorIs(first, 'a');
+                        an = an == null ? a : an;
+
+                        // wrap selection.
+                        var $a = $(a);
+                        if (!an && !a) {
+                            $(n).wrapAll($tag);
+                            $a = $(n).parent();
+                            if (isPoint) {
+                                $a.text(D.sumo_lnk_txt);
+                                n = $a.contents();
+                            }
+                        }
+
+                        setA($a, D);
+                        return n;
+                    }, obj);
+                    console.log('clicked om')
+                });
+            }
+        },
+
+        /* hover of link tag */
+        linkOver: function () {
+            
         },
 
         /*
@@ -1409,6 +1452,10 @@
                 tag: 'a',
                 onclick: function () {
                     O.linkHandler();
+                },
+                high: function () {
+                    console.log('highlighted a');
+                    O.linkOver();
                 }
                 // typ: 'inline',
             }
