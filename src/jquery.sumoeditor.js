@@ -225,8 +225,8 @@
                 else if (e.keyCode === 13 && e.shiftKey !== true) {
                     pd = O.breakLine();
                 }
-                else if (e.keyCode == 27){
-                    O.utils.modal();
+                else if (e.keyCode == 27){ // escape key
+                    //O.utils.modal();
                 }
 
                 // update contents of underlying actual element.
@@ -303,7 +303,7 @@
         },
 
         /*
-        * Breaks line at cursor position ans also handles many scenarios.
+        * Breaks line at cursor position also handles many scenarios.
         * @return {boolean} to preventDefault or not.
         * */
         breakLine: function () {
@@ -402,7 +402,7 @@
                 var btn = O.REG_BUTTONS[x.tagName.toUpperCase()];
                 if(btn){
                     // TODO: implement highlighting of buttons here.
-                    if(btn.high)btn.high.call(O);
+                    if(btn.high)btn.high.call(O, x);
                 }
             })
             O.utils.ancestorIs(rng.end, 'a')
@@ -529,10 +529,11 @@
         linkHandler: function () {
             var O = this,
                 R = O.selection.getRange(),
-                isPoint = R.start === R.end && R.so === R.eo,
+                isPoint = R.start === R.end,
 
                 // modal markup.
-                $c = $((isPoint ? '<p><label for="sumo_lnk_txt">Text</label><span><input name="sumo_lnk_txt" id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>' : '') +
+                txt = '<p><label for="sumo_lnk_txt">Text</label><span><input name="sumo_lnk_txt" id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>',
+                $c = $((isPoint ? txt : '') +
                     '<p><label for="sumo_lnk">Link</label><span><input name="sumo_lnk" id="sumo_lnk" placeholder="http://quesapp.com" type="text"/></span></p>' +
                     '<p><span class="_lst"><label class="sumo-chbox"><input id="sumo_chkbx" name="sumo_chkbx" type="checkbox"/><span></span>New tab</label></span>' +
                     '<input type="submit" value="Apply"/></p>'),
@@ -549,7 +550,7 @@
 
             // if already in <a> but point selection.
             var _a = O.utils.ancestorIs(R.end, 'a')
-            if(isPoint && _a){
+            if(R.start === R.end && _a){
                 _a = $(_a);
                 O.utils.modal($c, function (D) {
                     _a.text(D.sumo_lnk_txt);
@@ -560,6 +561,9 @@
                 $c.find('#sumo_chkbx')[0].checked= _a.attr('target');
             }
             else {
+                 if(isPoint){
+                     $c.find('#sumo_lnk_txt').val(R.start.textContent.substr(R.so, R.eo-R.so));
+                 }
                 O.utils.modal($c, function (D) {
                     var an = null,   // flag to apply uniform operation on the selection.
                         obj = O.selection.textNodes(R), // preserve the selection.
@@ -584,14 +588,21 @@
                         setA($a, D);
                         return n;
                     }, obj);
-                    console.log('clicked om')
                 });
             }
         },
 
         /* hover of link tag */
-        linkOver: function () {
-            
+        linkOver: function (e) {
+
+
+            var O = this,
+                lnk = $(e).attr('href'),
+                $c ='<p><label>Link | </label><span><a class="sumo_lnk" href="'+lnk+'">'+ lnk +'</a> <span class="sumo_edit">Edit</span> | <span class="sumo_remove">Remove</span></span></p>';
+
+            O.utils.modal($c, function (D) {
+                console.log('submited.')
+            });
         },
 
         /*
@@ -1367,7 +1378,13 @@
                 if(cb && !cb(D)) $m.remove();
                 return false;
             });
-            $m = $('<div class="sumo-modal">')
+
+            $m = $('<div class="sumo-modal">');
+            $m.on('keydown', function (e) {
+                if (e.keyCode == 27){ // escape key
+                    $m.remove();
+                }
+            });
             $m.append($f);
             o.O.$wrapper.append($m);
             $f.append($c)
@@ -1453,9 +1470,9 @@
                 onclick: function () {
                     O.linkHandler();
                 },
-                high: function () {
+                high: function (e) {
                     console.log('highlighted a');
-                    O.linkOver();
+                    O.linkOver(e);
                 }
                 // typ: 'inline',
             }
