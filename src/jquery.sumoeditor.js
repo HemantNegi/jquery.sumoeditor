@@ -561,9 +561,9 @@
                 $c.find('#sumo_chkbx')[0].checked= _a.attr('target');
             }
             else {
-                 if(isPoint){
-                     $c.find('#sumo_lnk_txt').val(R.start.textContent.substr(R.so, R.eo-R.so));
-                 }
+                if (isPoint) {
+                    $c.find('#sumo_lnk_txt').val(R.start.textContent.substr(R.so, R.eo - R.so));
+                }
                 O.utils.modal($c, function (D) {
                     var an = null,   // flag to apply uniform operation on the selection.
                         obj = O.selection.textNodes(R), // preserve the selection.
@@ -598,7 +598,7 @@
 
             var O = this,
                 lnk = $(e).attr('href'),
-                $c ='<p><label>Link | </label><span><a class="sumo_lnk" href="'+lnk+'">'+ lnk +'</a> <span class="sumo_edit">Edit</span> | <span class="sumo_remove">Remove</span></span></p>';
+                $c ='<p class="sumo_link_hover">Link <i>|</i> <a class="sumo_lnk" href="'+lnk+'">'+ lnk +'</a> <i>|</i> <a class="sumo_edit">Edit</a> <i>|</i> <a class="sumo_remove">Remove</a></p>';
 
             O.utils.modal($c, function (D) {
                 console.log('submited.')
@@ -778,6 +778,8 @@
             }
         },
 
+        prevPos: null,
+
         /*
         * Aliased for range
         * @returns Object.<rng> a custom range object.
@@ -803,12 +805,15 @@
 
                 // if any of the ends are outside of editor container.
                 // set a collapsed range on last node.
-         /*       if(!this.isInside(rng.start) || !this.isInside(rng.end)){
-                    var cn = this.O.editor.childNodes;
+                if(!this.isInside(rng.start) || !this.isInside(rng.end)){
+                    console.log("Full swap range");
+                    rng = this.prevPos;
+                    /*var cn = this.O.editor.childNodes;
                     rng.start = rng.end = cn[cn.length-1];
                     // usually rng.end should not be a text node but just a sanity check,
                     rng.so = rng.eo = rng.end.nodeType == 3 ? rng.end.length : rng.end.childNodes.length;
-                }*/
+                    */
+                }
 
                 // firefox case: pressing ctrl + a selects editor container also.
                 /*
@@ -822,6 +827,7 @@
                     // usually rng.end should not be a text node but just a sanity check,
                     rng.eo = rng.end.nodeType == 3 ? rng.end.length : rng.end.childNodes.length;
                 }*/
+            this.prevPos = rng;
             return rng;
         },
 

@@ -168,7 +168,6 @@
 .sumo-modal p > label{
     position: absolute;
     left: 0;
-    line-height: 25px;
 }
 .sumo-modal p span{
     display: block;
@@ -226,16 +225,25 @@
     box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.25);
 }
 
+.sumo-modal .sumo_link_hover{
+    line-height: 13px;
+    height: 14px;
+    margin: -2px 0;
+    padding-left: 0;
+}
+.sumo-modal .sumo_link_hover i {padding: 0 2px;position: relative;top: -1px;}
 .sumo-modal .sumo_lnk{
     color: #3480ff;
     display: inline-block;
     text-overflow: ellipsis;
-    max-width: 248px;
+    max-width: 250px;
     overflow: hidden;
     text-decoration: none;
+    vertical-align: bottom;
 }
 .sumo-modal .sumo_edit{display:inline;cursor: pointer;color: #3480ff;}
 .sumo-modal .sumo_remove{display:inline;color: #3480ff;cursor: pointer;}
+.sumo-modal .sumo_actions{display:inline;color: #3480ff;cursor: pointer;}
 
 
 
