@@ -231,8 +231,8 @@
     margin: -2px 0;
     padding-left: 0;
 }
-.sumo-modal .sumo_link_hover i {padding: 0 2px;position: relative;top: -1px;}
-.sumo-modal .sumo_lnk{
+.sumo-modal .sumo_link_hover i {padding: 0 5px;position: relative;top: -1px;}
+.sumo-modal a{
     color: #3480ff;
     display: inline-block;
     text-overflow: ellipsis;
@@ -240,10 +240,11 @@
     overflow: hidden;
     text-decoration: none;
     vertical-align: bottom;
+    cursor: pointer;
 }
-.sumo-modal .sumo_edit{display:inline;cursor: pointer;color: #3480ff;}
-.sumo-modal .sumo_remove{display:inline;color: #3480ff;cursor: pointer;}
-.sumo-modal .sumo_actions{display:inline;color: #3480ff;cursor: pointer;}
+/*.sumo-modal .sumo_edit{display:inline;cursor: pointer;color: #3480ff;}*/
+/*.sumo-modal .sumo_remove{display:inline;color: #3480ff;cursor: pointer;}*/
+/*.sumo-modal .sumo_actions{display:inline;color: #3480ff;cursor: pointer;}*/
 
 
 

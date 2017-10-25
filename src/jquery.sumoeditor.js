@@ -594,11 +594,25 @@
 
         /* hover of link tag */
         linkOver: function (e) {
-
-
             var O = this,
-                lnk = $(e).attr('href'),
-                $c ='<p class="sumo_link_hover">Link <i>|</i> <a class="sumo_lnk" href="'+lnk+'">'+ lnk +'</a> <i>|</i> <a class="sumo_edit">Edit</a> <i>|</i> <a class="sumo_remove">Remove</a></p>';
+                $e = $(e),
+                lnk = $e.attr('href'),
+                $c = $(
+                    '<p class="sumo_link_hover">Link<i>|</i>' +
+                    '<a target="_blank" href="'+lnk+'">'+ lnk +'</a><i>|</i></p>'
+                ).append([
+                    // edit button
+                    $('<a>Edit</a>').on('click', function(){
+                        O.utils.modal();
+                        O.linkHandler();
+                    }),
+                    '<i>|</i>',
+                    // remove link button
+                    $('<a>Remove</a>').on('click', function(){
+                        O.utils.modal();
+                        $e.contents().unwrap();
+                    })
+                ]);
 
             O.utils.modal($c, function (D) {
                 console.log('submited.')
@@ -778,7 +792,7 @@
             }
         },
 
-        prevPos: null,
+        prevRng: null,
 
         /*
         * Aliased for range
@@ -786,48 +800,39 @@
         * */
         getRange: function(){
 
-            var sel = this.obj(),
-                range = sel.getRangeAt(0),
+            var sel = this.obj(), rng, r;
+            if (sel.anchorNode) {
+                r = sel.getRangeAt(0),
                 /*
-                * @type {{
-                *   start: Object.<DOM Node>, so: number,
-                *   end: Object.<DOM Node>, eo: number
-                *  }}
-                *  a custom interpretation of range object
-                * */
+                 * @type {{
+                 *   start: Object.<DOM Node>, so: number,
+                 *   end: Object.<DOM Node>, eo: number
+                 *  }}
+                 *  a custom interpretation of range object
+                 * */
                 rng = {
-                    start: range.startContainer,
-                    end: range.endContainer,
-                    so: range.startOffset,
-                    eo: range.endOffset
+                    start: r.startContainer,
+                    end: r.endContainer,
+                    so: r.startOffset,
+                    eo: r.endOffset
                 };
-                    // collapsed = range.collapsed;
+            }
+            else{
+                rng = this.prevRng;
+            }
 
-                // if any of the ends are outside of editor container.
-                // set a collapsed range on last node.
-                if(!this.isInside(rng.start) || !this.isInside(rng.end)){
-                    console.log("Full swap range");
-                    rng = this.prevPos;
-                    /*var cn = this.O.editor.childNodes;
-                    rng.start = rng.end = cn[cn.length-1];
-                    // usually rng.end should not be a text node but just a sanity check,
-                    rng.so = rng.eo = rng.end.nodeType == 3 ? rng.end.length : rng.end.childNodes.length;
-                    */
-                }
+            // if any of the ends are outside of editor container use previous rng.
+            if(!this.isInside(rng.start) || !this.isInside(rng.end)){
+                console.log('Selection was outside! Rng restored');
+                rng = this.prevRng;
+                /*var cn = this.O.editor.childNodes;
+                rng.start = rng.end = cn[cn.length-1];
+                // usually rng.end should not be a text node but just a sanity check,
+                rng.so = rng.eo = rng.end.nodeType == 3 ? rng.end.length : rng.end.childNodes.length;
+                */
+            }
 
-                // firefox case: pressing ctrl + a selects editor container also.
-                /*
-                I think we don't need this check now as we have handled ctrl + A
-                if(rng.start == this.O.editor && rng.end == this.O.editor){
-                    debugger;
-                    var cn = this.O.editor.childNodes;
-                    rng.start = cn[0];
-                    rng.end = cn[cn.length-1];
-                    rng.so = 0;
-                    // usually rng.end should not be a text node but just a sanity check,
-                    rng.eo = rng.end.nodeType == 3 ? rng.end.length : rng.end.childNodes.length;
-                }*/
-            this.prevPos = rng;
+            this.prevRng = rng;
             return rng;
         },
 
