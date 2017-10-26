@@ -151,6 +151,7 @@
 
 /* modals */
 .sumo-modal{
+    white-space: nowrap;
     position: absolute;
     top: 80px;
     left: 23px;

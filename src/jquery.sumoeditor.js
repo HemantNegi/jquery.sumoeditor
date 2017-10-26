@@ -7,6 +7,13 @@
  * http://www.opensource.org/licenses/MIT
  */
 
+ /*
+ TODO: these are builtin functions that can be used.
+ - https://developer.mozilla.org/en-US/docs/Web/API/Range/insertNode
+ - https://developer.mozilla.org/en-US/docs/Web/API/Node/normalize
+ - https://developer.mozilla.org/en-US/docs/Web/API/Text/splitText
+ */
+
 ;(function ($, window, document, undefined) {
     'use strict';
 
@@ -801,7 +808,7 @@
         getRange: function(){
 
             var sel = this.obj(), rng, r;
-            if (sel.anchorNode) {
+            if (sel.rangeCount) {
                 r = sel.getRangeAt(0),
                 /*
                  * @type {{
@@ -932,6 +939,50 @@
                     eo: last.length
                 });
             }
+        },
+
+        /*
+        * Returns the coordinates for current caret position.
+        */
+        getCoords: function () {
+            var o = this,
+                sel = o.obj(),
+                range, rects, rect,
+                ed = o.O.$editor.offset(),
+                x = 0, y = 0;
+
+            if (sel.rangeCount) {
+                range = sel.getRangeAt(0).cloneRange();
+                if (range.getClientRects) {
+                    range.collapse(true);
+                    rects = range.getClientRects();
+                    if (rects.length > 0) {
+                        rect = rects[0];
+                    }
+                    x = rect.left;
+                    y = rect.top;
+                }
+                // Fall back to inserting a temporary element
+                if (x == 0 && y == 0) {
+                    var el = createElement("el");
+                    if (el.getClientRects) {
+                        // Ensure el has dimensions and position by
+                        // adding a zero-width space character
+                        el.appendChild(createTextNode("\u200b"));
+                        range.insertNode(el);
+                        rect = el.getClientRects()[0];
+                        x = rect.left;
+                        y = rect.top;
+                        var p = span.parentNode;
+                        p.removeChild(span);
+
+                        // Glue any broken text nodes back together
+                        p.normalize();
+                    }
+                }
+            }
+
+            return { x: x - ed.left, y: y - ed.top };
         }
     };
 
@@ -1373,6 +1424,7 @@
         * */
         modal: function ($c, cb) {
             var o = this,
+                cord = o.O.selection.getCoords(),
                 $m = o.O.$wrapper.find('.sumo-modal');
             if($m.length) {
                 $m.remove();
@@ -1391,6 +1443,7 @@
             });
 
             $m = $('<div class="sumo-modal">');
+            $m.css({left: cord.x, top: cord.y});
             $m.on('keydown', function (e) {
                 if (e.keyCode == 27){ // escape key
                     $m.remove();
