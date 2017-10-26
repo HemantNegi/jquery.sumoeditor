@@ -543,7 +543,12 @@
                 $c = $((isPoint ? txt : '') +
                     '<p><label for="sumo_lnk">Link</label><span><input name="sumo_lnk" id="sumo_lnk" placeholder="http://quesapp.com" type="text"/></span></p>' +
                     '<p><span class="_lst"><label class="sumo-chbox"><input id="sumo_chkbx" name="sumo_chkbx" type="checkbox"/><span></span>New tab</label></span>' +
-                    '<input type="submit" value="Apply"/></p>'),
+                    '<input id="sumo_submit" type="submit" value="Apply"/></p>'),
+
+                _submit = $c.find('#sumo_submit'),
+                _lnk_txt = $c.find('#sumo_lnk_txt'),
+                _lnk = $c.find('#sumo_lnk'),
+                _chkbx = $c.find('#sumo_chkbx'),
 
                 setA = function ($a, D) {
                     $a.attr('href', D.sumo_lnk);
@@ -553,6 +558,9 @@
                     else {
                         $a.removeAttr('target')
                     }
+                },
+                btnV = function(){
+                    _submit[0].disabled = !(_lnk_txt.val() && _lnk.val());
                 };
 
             // if already in <a> but point selection.
@@ -563,13 +571,13 @@
                     _a.text(D.sumo_lnk_txt);
                     setA(_a, D);
                 });
-                $c.find('#sumo_lnk_txt').val(_a.text());
-                $c.find('#sumo_lnk').val(_a.attr('href'));
-                $c.find('#sumo_chkbx')[0].checked= _a.attr('target');
+                _lnk_txt.val(_a.text());
+                _lnk.val(_a.attr('href'));
+                _chkbx[0].checked= _a.attr('target');
             }
             else {
                 if (isPoint) {
-                    $c.find('#sumo_lnk_txt').val(R.start.textContent.substr(R.so, R.eo - R.so));
+                    _lnk_txt.val(R.start.textContent.substr(R.so, R.eo - R.so));
                 }
                 O.utils.modal($c, function (D) {
                     var an = null,   // flag to apply uniform operation on the selection.
@@ -597,6 +605,11 @@
                     }, obj);
                 });
             }
+
+            // validation on links, empty links are not allowed.
+            _lnk.on('keyup', btnV);
+            _lnk_txt.on('keyup', btnV);
+            btnV();
         },
 
         /* hover of link tag */
@@ -947,42 +960,23 @@
         getCoords: function () {
             var o = this,
                 sel = o.obj(),
-                range, rects, rect,
-                ed = o.O.$editor.offset(),
-                x = 0, y = 0;
+                range, rect,
+                ed = o.O.$wrapper.offset();
 
             if (sel.rangeCount) {
                 range = sel.getRangeAt(0).cloneRange();
-                if (range.getClientRects) {
-                    range.collapse(true);
-                    rects = range.getClientRects();
-                    if (rects.length > 0) {
-                        rect = rects[0];
-                    }
-                    x = rect.left;
-                    y = rect.top;
-                }
-                // Fall back to inserting a temporary element
-                if (x == 0 && y == 0) {
-                    var el = createElement("el");
-                    if (el.getClientRects) {
-                        // Ensure el has dimensions and position by
-                        // adding a zero-width space character
-                        el.appendChild(createTextNode("\u200b"));
-                        range.insertNode(el);
-                        rect = el.getClientRects()[0];
-                        x = rect.left;
-                        y = rect.top;
-                        var p = span.parentNode;
-                        p.removeChild(span);
 
-                        // Glue any broken text nodes back together
-                        p.normalize();
-                    }
-                }
+                var el = $('<span>');
+                el.append('\u200b');
+                range.insertNode(el[0]);
+                rect = el.offset();
+                var p = el.parent()[0];
+                el.remove();
+
+                // Glue any broken text nodes back together
+                p.normalize();
             }
-
-            return { x: x - ed.left, y: y - ed.top };
+            return {x: rect.left - ed.left, y: rect.top - ed.top};
         }
     };
 
@@ -1443,7 +1437,6 @@
             });
 
             $m = $('<div class="sumo-modal">');
-            $m.css({left: cord.x, top: cord.y});
             $m.on('keydown', function (e) {
                 if (e.keyCode == 27){ // escape key
                     $m.remove();
@@ -1451,8 +1444,30 @@
             });
             $m.append($f);
             o.O.$wrapper.append($m);
-            $f.append($c)
+            $f.append($c);
             $f.find('input').first().focus();
+
+            // position in center.
+            var L = cord.x - $m.outerWidth()/2,
+                T = cord.y + 22,
+                w = $m.outerWidth(),
+                h = $m.outerHeight(),
+                ew = o.O.$editor.outerWidth(),
+                eh = o.O.$editor.outerHeight();
+            if(L < 0){
+                L = 10;
+            }
+            if(L + w > ew){
+                L = ew - w - 10;
+            }
+            if(T + h > eh){
+                T = T - h - 26;
+            }
+
+            $m.css({
+                left: L,
+                top: T
+            });
         }
     };
 
