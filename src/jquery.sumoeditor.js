@@ -560,7 +560,7 @@
                     }
                 },
                 btnV = function(){
-                    _submit[0].disabled = !(_lnk_txt.val() && _lnk.val());
+                    _submit[0].disabled = (!_lnk_txt.length)? !_lnk.val() : !(_lnk_txt.val() && _lnk.val());
                 };
 
             // if already in <a> but point selection.
@@ -612,7 +612,9 @@
             btnV();
         },
 
-        /* hover of link tag */
+        /*
+        * hover of link tag
+        * */
         linkOver: function (e) {
             var O = this,
                 $e = $(e),
@@ -822,11 +824,12 @@
 
             var sel = this.obj(), rng, r;
             if (sel.rangeCount) {
-                r = sel.getRangeAt(0),
+                r = sel.getRangeAt(0).cloneRange(),
                 /*
                  * @type {{
                  *   start: Object.<DOM Node>, so: number,
-                 *   end: Object.<DOM Node>, eo: number
+                 *   end: Object.<DOM Node>, eo: number,
+                 *   r: Object.<Range object>
                  *  }}
                  *  a custom interpretation of range object
                  * */
@@ -834,7 +837,8 @@
                     start: r.startContainer,
                     end: r.endContainer,
                     so: r.startOffset,
-                    eo: r.endOffset
+                    eo: r.endOffset,
+                    r : r
                 };
             }
             else{
@@ -959,14 +963,11 @@
         */
         getCoords: function () {
             var o = this,
-                sel = o.obj(),
-                range, rect,
-                ed = o.O.$wrapper.offset();
+                range = o.getRange().r,
+                rect,
+                ed = o.O.$wrapper.offset(),
+                el = $('<span>');
 
-            if (sel.rangeCount) {
-                range = sel.getRangeAt(0).cloneRange();
-
-                var el = $('<span>');
                 el.append('\u200b');
                 range.insertNode(el[0]);
                 rect = el.offset();
@@ -975,7 +976,7 @@
 
                 // Glue any broken text nodes back together
                 p.normalize();
-            }
+
             return {x: rect.left - ed.left, y: rect.top - ed.top};
         }
     };
@@ -1418,7 +1419,6 @@
         * */
         modal: function ($c, cb) {
             var o = this,
-                cord = o.O.selection.getCoords(),
                 $m = o.O.$wrapper.find('.sumo-modal');
             if($m.length) {
                 $m.remove();
@@ -1448,7 +1448,8 @@
             $f.find('input').first().focus();
 
             // position in center.
-            var L = cord.x - $m.outerWidth()/2,
+            var cord = o.O.selection.getCoords(),
+                L = cord.x - $m.outerWidth()/2,
                 T = cord.y + 22,
                 w = $m.outerWidth(),
                 h = $m.outerHeight(),
@@ -1464,10 +1465,7 @@
                 T = T - h - 26;
             }
 
-            $m.css({
-                left: L,
-                top: T
-            });
+            $m.css({left: L, top: T});
         }
     };
 
