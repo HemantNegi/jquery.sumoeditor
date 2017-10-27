@@ -701,6 +701,11 @@
     * */
     Editor.prototype.selection = {
         /*
+        * Keeps history of selection, useful when for situations like handling selection outside editor.
+        * */
+        prevRng: null,
+
+        /*
         * Gets the block nodes in the selection.
         * @returns {{nodes: Array.<Element>, range: Object.<Range Object>}}
         * */
@@ -814,7 +819,6 @@
             }
         },
 
-        prevRng: null,
 
         /*
         * Aliased for range
