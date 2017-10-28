@@ -62,6 +62,9 @@
         /* An object to keep reference to created buttons */
         REG_BUTTONS: {},
 
+        /* A list of currently highlighted buttons on the toolbar.*/
+        HIGH_BUTTONS: [],
+
         init: function () {
             // Introduce defaults that can be extended either
             // globally or using an object literal.
@@ -156,6 +159,7 @@
                 }
 
                 O.getContent();
+                O.highlighter();
             })
 
             def.btn = btn;
@@ -402,17 +406,27 @@
             return !0;
         },
 
+        /*
+        * handles the highlighting of buttons on the toolbar. Can be called
+        * anytime to set the states of buttons on toolbar.
+        * Triggers a callback high() with element that button corresponds to.
+        * */
         highlighter: function() {
             var O = this,
                 rng = O.selection.getRange();
-            $(rng.end).parents().each(function(i, x) {
+            // remove highlighting.
+            O.HIGH_BUTTONS.forEach(function(x){
+                x.removeClass('high');
+            });
+
+            $(rng.end).parents().each(function(_, x) {
                 var btn = O.REG_BUTTONS[x.tagName.toUpperCase()];
                 if(btn){
-                    // TODO: implement highlighting of buttons here.
+                    // add highlighting.
+                    O.HIGH_BUTTONS.push(btn.btn.addClass('high'));
                     if(btn.high)btn.high.call(O, x);
                 }
             })
-            O.utils.ancestorIs(rng.end, 'a')
         },
 
         /*

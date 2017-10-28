@@ -132,6 +132,9 @@
     vertical-align: middle;
     color: #444;
 }
+.sumoeditor .toolbar button.high{
+    color: #06c;
+}
 
 .sumoeditor .editor{
     border: 1px solid #ccc;
@@ -225,6 +228,8 @@
     border-radius: 2px;
     cursor: pointer;
     box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.25);
+    font-size: 13px;
+    line-height: 15px;
 }
 .sumo-modal input[type="submit"]:disabled{
     background-color: #b7b7b7;
@@ -240,7 +245,7 @@
 }
 .sumo-modal .sumo_link_hover i {padding: 0 5px;position: relative;top: -1px;}
 .sumo-modal a{
-    color: #3480ff;
+    color: #06c;
     display: inline-block;
     text-overflow: ellipsis;
     max-width: 250px;
@@ -274,4 +279,8 @@
     list-style-type: disc;
     margin: 1em 0;
     padding-left: 40px;
+}
+
+.editor a{
+    color: #06c;
 }
