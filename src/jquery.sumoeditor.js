@@ -65,6 +65,9 @@
         /* A list of currently highlighted buttons on the toolbar.*/
         HIGH_BUTTONS: [],
 
+        /*
+        * initializes settings and module instance.
+        * */
         init: function () {
             // Introduce defaults that can be extended either
             // globally or using an object literal.
@@ -74,11 +77,12 @@
             this.bkArr = [];
 
             // initialize modules.
-            this.selection.O = this.caret.O = this.utils.O = this;
+            this.history.O = this.selection.O = this.caret.O = this.utils.O = this;
 
             this.setUp();
             this.setToolbar();
             this.bindEvents();
+            this.history.add();
 
             return this
         },
@@ -209,26 +213,13 @@
                 O.utils.modal();
             })
 
-            // caret position update.
-            O.$editor.on('keyup click', function (evt) {
-                // #HISTORY
-                // var node = O.getNode().parentsUntil(O.elem).andSelf().first();
-                // var n = O.getCursorPos(node);
-                // O.currentElement = node;
-                // O.cursorPos = n;
-                // console.log('pos: ', n, 'node: ', node);
-                O.getContent();
-                O.utils.modal();
-                O.highlighter();
-            });
-
             // handle key presses.
             O.$editor.on('keydown', function (e) {
                 // flag to e.preventDefault();
                 var pd = !1;
 
                 if (e.ctrlKey) {
-                    pd = O.ctrlKeyPress(e.keyCode);
+                    pd = O.ctrlKeyPress(e);
                 }
                 else if (e.keyCode === 8) {
                     pd = O.backSpacePress();
@@ -249,6 +240,25 @@
                 }
             });
 
+            // caret position update.
+            O.$editor.on('keyup click', function (evt) {
+                // #HISTORY
+                // var node = O.getNode().parentsUntil(O.elem).andSelf().first();
+                // var n = O.getCursorPos(node);
+                // O.currentElement = node;
+                // O.cursorPos = n;
+                // console.log('pos: ', n, 'node: ', node);
+
+                O.utils.modal();
+                O.highlighter();
+            });
+
+            // keypress event is triggered only when some content changes (not for special keys).
+            O.$editor.on('keypress', function(){
+                O.history.add();
+                //O.getContent();
+            });
+
             // handle text pasting.
             O.$editor.on('paste', function (e) {
                 e.preventDefault();
@@ -260,17 +270,37 @@
 
         /*
         * Handle ctrl Key press inside editor.
-        * @param {number} key keycode for the pressed key.
+        * @param {Event} evt the event object passed as argument to handler.
         * @return {boolean} to preventDefault or not.
         * */
-        ctrlKeyPress: function (key) {
-            var O = this;
+        ctrlKeyPress: function (evt) {
+            var O = this,
+                key = evt.keyCode;
+            switch(key){
+                // CASE: handle ctrl + a to fix selection issue.
+                case 65:                                    // 'A'
+                case 97:                                    // 'a'
+                    O.selection.selectAll();
+                    return !0;
 
-            // CASE: handle ctrl + a to fix selection issue.
-            if (key == 65 || key == 97) { // 'A' or 'a'
+                case 90:                                    // 'Z'
+                case 122:                                   // 'z'
+                    O.history.undo();
+                    evt.stopImmediatePropagation();
+                    return !0;
+
+                case 89:                                    // 'Y'
+                case 121:                                   // 'y'
+                    O.history.pop();
+                    return !0;
+
+
+            }
+
+            /*if (key == 65 || key == 97) { // 'A' or 'a'
                 O.selection.selectAll();
                 return !0;
-            }
+            }*/
         },
 
         /*
@@ -1488,6 +1518,55 @@
     };
 
     /*
+    * History module provides features like undo/redo on the editor content.
+    * */
+    Editor.prototype.history = {
+
+        size: 100,
+        deb: 0,//300,        // de-bounce time.
+        stack: [],
+        ptr: 0,          // holds index of an empty slot.
+        T: 0,
+
+        add : function(){
+            var o = this,
+                c = o.O.getContent();
+            if(o.ptr >= o.size){
+                o.stack.shift();
+                o.ptr--;
+            }
+
+            clearTimeout(o.T);
+            o.T = setTimeout(function(){
+                if(o.stack[o.ptr] != c){
+                    o.stack[o.ptr] = c;
+                    o.ptr++;
+                    console.log('HISTORY push : ' + o.stack.length, 'ptr: ', o.ptr);
+                }
+            }, o.deb);
+        },
+
+        undo: function(){
+            var o = this, c;
+            if(o.ptr > 0 ){
+                c = o.stack[--o.ptr];
+                console.log('HISTORY pop : ' + o.stack.length, 'ptr: ', o.ptr);
+                o.O.$editor.html(c);
+            }
+
+            // if stack is empty, we should push current state.
+            if(o.ptr==0) {
+                o.add();
+            }
+        },
+
+
+        redo: function(){
+
+        }
+    };
+
+    /*
     * All the toolbar button definition goes here.
     * */
     Editor.prototype.buttons = {
@@ -1573,10 +1652,21 @@
             }
         },
         indent: function () {
-            return {ico: 'indent'}
+            var O = this;
+            return {
+                ico: 'indent',
+                onclick: function(){
+                    O.history.pop()
+                }
+            }
         },
         unindent: function () {
-            return {ico: 'unindent'}
+            return {
+                ico: 'unindent',
+                onclick: function(){
+
+                }
+            }
         },
         sub: function () {
             return {
