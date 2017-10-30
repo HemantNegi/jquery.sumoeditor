@@ -101,6 +101,11 @@
             }
 
             O.getContent();
+
+            // set initial caret position.
+            var nods = O.utils.textNodes(O.editor);
+            O.caret.setPos($(nods[0]), 0);
+
             /*TODO: Remove this block*/
             O.$wrapper.after(O.$e);
         },
@@ -232,7 +237,7 @@
                 }
 
                 // update contents of underlying actual element.
-                O.getContent();
+                // O.getContent();
 
                 if(pd) {
                     e.preventDefault();
@@ -249,15 +254,17 @@
                 // O.cursorPos = n;
                 // console.log('pos: ', n, 'node: ', node);
 
+                // O.getContent(); // getContent() is called form history.add() so no need.
+                O.history.add();
                 O.utils.modal();
                 O.highlighter();
             });
 
-            // keypress event is triggered only when some content changes (not for special keys).
+/*            // keypress event is triggered only when some content changes (not for special keys).
             O.$editor.on('keypress', function(){
-                O.history.add();
+                //O.history.add();
                 //O.getContent();
-            });
+            });*/
 
             // handle text pasting.
             O.$editor.on('paste', function (e) {
@@ -276,31 +283,31 @@
         ctrlKeyPress: function (evt) {
             var O = this,
                 key = evt.keyCode;
-            switch(key){
-                // CASE: handle ctrl + a to fix selection issue.
-                case 65:                                    // 'A'
-                case 97:                                    // 'a'
-                    O.selection.selectAll();
-                    return !0;
+            switch (key) {
+            // CASE: handle ctrl + a to fix selection issue.
 
-                case 90:                                    // 'Z'
-                case 122:                                   // 'z'
-                    O.history.undo();
-                    evt.stopImmediatePropagation();
-                    return !0;
+            case 65:                                    // 'A'
+            case 97:                                    // 'a'
+                O.selection.selectAll();
+                return !0;
 
-                case 89:                                    // 'Y'
-                case 121:                                   // 'y'
-                    O.history.pop();
-                    return !0;
+            case 90:                                    // 'Z'
+            case 122:                                   // 'z'
+                O.history.undo();
+                evt.stopImmediatePropagation();
+                return !0;
 
-
+            case 89:                                    // 'Y'
+            case 121:                                   // 'y'
+                O.history.redo();
+                evt.stopImmediatePropagation();
+                return !0;
             }
 
             /*if (key == 65 || key == 97) { // 'A' or 'a'
-                O.selection.selectAll();
-                return !0;
-            }*/
+             O.selection.selectAll();
+             return !0;
+             }*/
         },
 
         /*
@@ -734,7 +741,7 @@
             this.$e.text(txt);
             setTimeout(function(){
                 $e.toggleClass('blank', ($c.length < 2 && !$e.text() && $c.first().is('p')));
-            },1)
+            }, 10);
             return txt;
         },
 
@@ -1011,19 +1018,25 @@
         */
         getCoords: function () {
             var o = this,
-                range = o.getRange().r,
+                r = o.getRange().r,
                 rect,
                 ed = o.O.$wrapper.offset(),
                 el = $('<span>');
 
+            if (!r.getClientRects && r.getClientRects().length) {
+                rect = r.getClientRects()[0];
+            }
+            else {
+                // fallback to element creation.
                 el.append('\u200b');
-                range.insertNode(el[0]);
+                r.insertNode(el[0]);
                 rect = el.offset();
                 var p = el.parent()[0];
                 el.remove();
 
                 // Glue any broken text nodes back together
                 p.normalize();
+            }
 
             return {x: rect.left - ed.left, y: rect.top - ed.top};
         }
@@ -1435,6 +1448,7 @@
         * */
         addLine: function ($e) {
             var n = $('<p><br/></p>');
+            n.prepend(document.createTextNode(''));
             $e.append(n);
             return n;
         },
@@ -1523,14 +1537,15 @@
     Editor.prototype.history = {
 
         size: 100,
-        deb: 0,//300,        // de-bounce time.
-        stack: [],
-        ptr: 0,          // holds index of an empty slot.
+        deb: 150,        // de-bounce time.
+        stack: [],       // contains the history.
+        ptr: -1,         // holds index of current state.
         T: 0,
 
         add : function(){
             var o = this,
-                c = o.O.getContent();
+                c = o.O.getContent(),
+                p = o.O.caret.getPos(o.O.editor);
             if(o.ptr >= o.size){
                 o.stack.shift();
                 o.ptr--;
@@ -1538,31 +1553,33 @@
 
             clearTimeout(o.T);
             o.T = setTimeout(function(){
-                if(o.stack[o.ptr] != c){
-                    o.stack[o.ptr] = c;
-                    o.ptr++;
-                    console.log('HISTORY push : ' + o.stack.length, 'ptr: ', o.ptr);
+                // if(o.stack[o.ptr] != c){ // avoid if content is same as previous.
+                if(!o.stack[o.ptr] || o.stack[o.ptr].c != c){ // avoid if content is same as previous.
+                    o.stack[++o.ptr] = {c:c, p:p};
+                    console.log('ADD HISTORY len : ' + o.stack.length, 'ptr: ', o.ptr, p);
                 }
             }, o.deb);
         },
 
         undo: function(){
-            var o = this, c;
+            var o = this;
             if(o.ptr > 0 ){
-                c = o.stack[--o.ptr];
-                console.log('HISTORY pop : ' + o.stack.length, 'ptr: ', o.ptr);
-                o.O.$editor.html(c);
-            }
-
-            // if stack is empty, we should push current state.
-            if(o.ptr==0) {
-                o.add();
+                o._set(o.stack[--o.ptr]);
             }
         },
 
-
         redo: function(){
+            var o = this;
+            if(o.ptr < o.stack.length-1) {
+                o._set(o.stack[++o.ptr]);
+            }
+        },
 
+        _set: function (h) {
+            var o = this;
+            console.log('len : ' + o.stack.length, 'ptr: ', o.ptr, h.c);
+            o.O.$editor.html(h.c);
+            o.O.caret.setPos(o.O.$editor, h.p);
         }
     };
 
