@@ -1023,7 +1023,7 @@
                 ed = o.O.$wrapper.offset(),
                 el = $('<span>');
 
-            if (!r.getClientRects && r.getClientRects().length) {
+            if (r.getClientRects && r.getClientRects().length) {
                 rect = r.getClientRects()[0];
             }
             else {
@@ -1385,9 +1385,9 @@
         * @returns {Array.<elements>}
         * */
         extractContent: function ($n) {
-            var elms = [], p=0;
+            var o=this, elms = [], p=0;
             $n.contents().each(function(_, e){
-                if((e.nodeType === 3 && e.textContent) || $(e).is('br')){
+                if((e.nodeType === 3 && e.textContent) || !o.O.BLOCK_ELEMENTS[e.tagName.toUpperCase()]){
                     p = p || $('<p>');
                     p.append(e);
                 } else {
@@ -1512,20 +1512,22 @@
             // position in center.
             var cord = o.O.selection.getCoords(),
                 L = cord.x - $m.outerWidth()/2,
-                T = cord.y + 22,
+                T = cord.y,
                 w = $m.outerWidth(),
                 h = $m.outerHeight(),
                 ew = o.O.$editor.outerWidth(),
-                eh = o.O.$editor.outerHeight();
-            if(L < 0){
-                L = 10;
+                eh = o.O.$editor.outerHeight(),
+                pd = 10,                        // padding Left/right
+                tp = T - h - 4;                 // top position.
+            if(L < pd){
+                L = pd;
             }
-            if(L + w > ew){
-                L = ew - w - 10;
+            if(L + w > ew -pd){
+                L = ew - w - pd;
             }
-            if(T + h > eh){
-                T = T - h - 26;
-            }
+
+            // also check if there is no space on top, its better to display modal at the bottom.
+            T = (T + h > eh && tp > 1)? tp: T + 22;
 
             $m.css({left: L, top: T});
         }
