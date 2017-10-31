@@ -1537,7 +1537,7 @@
     Editor.prototype.history = {
 
         size: 100,
-        deb: 150,        // de-bounce time.
+        deb: 100,        // de-bounce time.
         stack: [],       // contains the history.
         ptr: -1,         // holds index of current state.
         T: 0,
@@ -1556,7 +1556,6 @@
                 // if(o.stack[o.ptr] != c){ // avoid if content is same as previous.
                 if(!o.stack[o.ptr] || o.stack[o.ptr].c != c){ // avoid if content is same as previous.
                     o.stack[++o.ptr] = {c:c, p:p};
-                    console.log('ADD HISTORY len : ' + o.stack.length, 'ptr: ', o.ptr, p);
                 }
             }, o.deb);
         },
@@ -1577,7 +1576,6 @@
 
         _set: function (h) {
             var o = this;
-            console.log('len : ' + o.stack.length, 'ptr: ', o.ptr, h.c);
             o.O.$editor.html(h.c);
             o.O.caret.setPos(o.O.$editor, h.p);
         }
