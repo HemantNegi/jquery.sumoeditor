@@ -1023,19 +1023,29 @@
                 ed = o.O.$wrapper.offset(),
                 el = $('<span>');
 
-            if (r.getClientRects && r.getClientRects().length) {
-                rect = r.getClientRects()[0];
+            if (r.getBoundingClientRect){
+                rect = r.getBoundingClientRect();
+                rect = {
+                    top: rect.top + pageYOffset,
+                    left: rect.left + pageXOffset
+                }
             }
             else {
                 // fallback to element creation.
-                el.append('\u200b');
-                r.insertNode(el[0]);
-                rect = el.offset();
-                var p = el.parent()[0];
-                el.remove();
+                if(r.startOffset) {
+                    el.append('\u200b');
+                    r.insertNode(el[0]);
+                    rect = el.offset();
+                    var p = el.parent()[0];
+                    el.remove();
 
-                // Glue any broken text nodes back together
-                p.normalize();
+                    // Glue any broken text nodes back together
+                    p.normalize();
+                }
+                else{ // avoid node change on corners.
+                    el = r.startContainer.previousSibling || r.startContainer.parentNode;
+                    rect = $(el).offset();
+                }
             }
 
             return {x: rect.left - ed.left, y: rect.top - ed.top};

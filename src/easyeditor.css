@@ -156,8 +156,8 @@
 .sumo-modal{
     white-space: nowrap;
     position: absolute;
-    top: 80px;
-    left: 23px;
+    top: 0;
+    left: 0;
     background-color: #fff;
     padding: 10px;
     border: 1px solid;
