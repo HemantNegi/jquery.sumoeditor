@@ -40,7 +40,7 @@
                 ['quote', 'code'],
 
                 [{'header': 1}, {'header': 2}],               // custom button values
-                ['ol', 'ul', 'indent', 'unindent', 'sub', 'sup', 'link'],
+                ['ol', 'ul', 'indent', 'unindent', 'sub', 'sup', 'link', 'undo', 'redo'],
                 [{'direction': 'rtl'}],                         // text direction
 
                 [{'size': ['small', false, 'large', 'huge']}],  // custom dropdown
@@ -128,7 +128,7 @@
                             parseBtns(obj, $grp);
                         }
                         else if (obj && typeof obj === 'object') {
-
+                            
                         }
                         else {
                             console.error('undefined toolbar object: ', obj);
@@ -1532,7 +1532,7 @@
             if(L < pd){
                 L = pd;
             }
-            if(L + w > ew -pd){
+            if(L + w > ew - pd){
                 L = ew - w - pd;
             }
 
@@ -1679,11 +1679,9 @@
             }
         },
         indent: function () {
-            var O = this;
             return {
                 ico: 'indent',
                 onclick: function(){
-                    O.history.pop()
                 }
             }
         },
@@ -1692,6 +1690,24 @@
                 ico: 'unindent',
                 onclick: function(){
 
+                }
+            }
+        },
+        undo: function () {
+            var O = this;
+            return {
+                ico: 'undo',
+                onclick: function(){
+                    O.history.undo();
+                }
+            }
+        },
+        redo: function () {
+            var O = this;
+            return {
+                ico: 'redo',
+                onclick: function(){
+                    O.history.redo();
                 }
             }
         },
