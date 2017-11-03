@@ -39,16 +39,16 @@
                 ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
                 ['quote', 'code'],
 
-                [{'header': 1}, {'header': 2}],               // custom button values
+//                [{'header': 1}, {'header': 2}],               // custom button values
                 ['ol', 'ul', 'indent', 'unindent', 'sub', 'sup', 'link', 'undo', 'redo'],
-                [{'direction': 'rtl'}],                         // text direction
+//                [{'direction': 'rtl'}],                         // text direction
 
-                [{'size': ['small', false, 'large', 'huge']}],  // custom dropdown
-                [{'header': [1, 2, 3, 4, 5, 6, false]}],
+//                [{'size': ['small', false, 'large', 'huge']}],  // custom dropdown
+                [{'align': ['left', 'right', 'center', 'justify']}],
 
-                [{'color': []}, {'background': []}],          // dropdown with defaults from theme
-                [{'font': []}],
-                [{'align': []}],
+//                [{'color': []}, {'background': []}],          // dropdown with defaults from theme
+//                [{'font': []}],
+//                [{'align': []}],
 
                 ['clean']                                         // remove formatting button
             ]
@@ -114,13 +114,22 @@
          * Parse config.toolbar options and populate buttons in toolbar.
          * */
         setToolbar: function () {
-            var O = this,
+            var O = this, btn,
+                create = function(key, val){
+                    if(key in O.buttons){
+                        var def = O.buttons[key].call(O, val);
+                        return O.createButton(def);
+                    }
+                    else{
+                        console.error('Toolbar Button "' + key + '" is not defined.');
+                        return !1;
+                    }
+                },
                 parseBtns = function (tools, $bar) {
                     tools.forEach(function (obj) {
                         if (typeof(obj) == 'string' && O.buttons[obj] /*TODO: Remove this check*/) {
-                            var def = O.buttons[obj].call(O),
-                                btn = O.createButton(def);
-                            $bar.append(btn);
+                            btn = create(obj);
+                            (btn)?$bar.append(btn):0;
                         }
                         else if (Array.isArray(obj)) {
                             var $grp = $('<span class="grp">');
@@ -128,7 +137,20 @@
                             parseBtns(obj, $grp);
                         }
                         else if (obj && typeof obj === 'object') {
-                            
+                            // create lists and drop-downs.
+                            for (var key in obj){
+                                if(Array.isArray(obj[key])){
+                                    var $lst = $('<span class="lst">');
+                                    $bar.append($lst);
+                                    obj[key].forEach(function(val){
+                                        btn = create(key, val);
+                                        $lst.append(btn);
+                                    });
+                                }
+                                else{
+                                    console.error('Improperly formatted button "' + key + '". Not an array');
+                                }
+                            }
                         }
                         else {
                             console.error('undefined toolbar object: ', obj);
@@ -549,6 +571,42 @@
 
                 return n;
             });
+        },
+
+        /*
+        * Toggles a css property on selected block elements.
+        * @param {string: string} style a css key value to apply.
+        **/
+        toggleStyle: function(style){
+            var O = this, r = null;
+
+            O.selection.eachBlock(function (mE) {
+                mE = $(mE);
+                debugger;
+                r = r == null ? mE.is(block) : r;
+                var elem;
+                if (r) {
+                    // begin removing the block.
+                    elem = O.utils.replaceTag(mE, 'p');
+                    O.utils.setBlank(elem);
+                }
+                else {
+                    console.log('inserting element');
+
+                    // # NESTING
+                    if (mE.is('li')) {
+                        elem = $('<' + block + '>');
+                        elem.append(mE.contents());
+                        mE.append(elem);
+                    }
+                    else {
+                        elem = O.utils.replaceTag(mE, block);
+                    }
+                }
+
+                return elem[0];
+            });
+
         },
 
         /*
@@ -1614,7 +1672,6 @@
                 tag: 'code',
             }
         },
-
         ol: function () {
             var O = this;
             return {
@@ -1725,6 +1782,18 @@
                 tag: 'sup'
             }
         },
+        align: function (val) {
+            var O = this;
+            return {
+                ico: 'align-' + val,
+//                typ: 'inline',
+//                tag: 'sup',
+                onclick: function(){
+                    O.toggleStyle({'text-align': val});
+                }
+            }
+        },
+
         clean:function () {
             return {
                 ico: 'clean',
