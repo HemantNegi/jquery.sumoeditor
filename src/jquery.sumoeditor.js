@@ -118,6 +118,12 @@
                 create = function(key, val){
                     if(key in O.buttons){
                         var def = O.buttons[key].call(O, val);
+                        /*
+                        * Function to prepare a unique Key for this button.
+                        * */
+                        def.key = function () {
+                            
+                        }
                         return O.createButton(def);
                     }
                     else{
@@ -479,8 +485,15 @@
             });
 
             $(rng.end).parents().each(function(_, x) {
+                var s = $(x).attr('style');
+                if(s){
+
+                }
                 var btn = O.REG_BUTTONS[x.tagName.toUpperCase()];
+                debugger;
                 if(btn){
+                    // $(x).css()
+
                     // add highlighting.
                     O.HIGH_BUTTONS.push(btn.btn.addClass('high'));
                     if(btn.high)btn.high.call(O, x);
@@ -575,36 +588,26 @@
 
         /*
         * Toggles a css property on selected block elements.
-        * @param {string: string} style a css key value to apply.
+        * @param {string} key a css property to apply.
+        * @param {!string} val a css property value to apply.
         **/
-        toggleStyle: function(style){
+        toggleStyle: function(key, val){
             var O = this, r = null;
 
             O.selection.eachBlock(function (mE) {
                 mE = $(mE);
-                debugger;
-                r = r == null ? mE.is(block) : r;
-                var elem;
+                // debugger;
+                r = r == null ? mE.css(key) === val : r;
+
                 if (r) {
-                    // begin removing the block.
-                    elem = O.utils.replaceTag(mE, 'p');
-                    O.utils.setBlank(elem);
+                    // remove the style
+                    mE.css(key, '');
                 }
                 else {
-                    console.log('inserting element');
-
-                    // # NESTING
-                    if (mE.is('li')) {
-                        elem = $('<' + block + '>');
-                        elem.append(mE.contents());
-                        mE.append(elem);
-                    }
-                    else {
-                        elem = O.utils.replaceTag(mE, block);
-                    }
+                    mE.css(key, val);
                 }
 
-                return elem[0];
+                return mE[0];
             });
 
         },
@@ -1598,7 +1601,17 @@
             T = (T + h > eh && tp > 1)? tp: T + 22;
 
             $m.css({left: L, top: T});
-        }
+        },
+
+/*        hasStyle: function ($e, key, val) {
+            var s = $e.attr('style');
+            if(s){
+
+            }
+            else{
+                return !1;
+            }
+        }*/
     };
 
     /*
@@ -1785,11 +1798,11 @@
         align: function (val) {
             var O = this;
             return {
-                ico: 'align-' + val,
 //                typ: 'inline',
-//                tag: 'sup',
+                tag: 'align',
+                ico: 'align-' + val,
                 onclick: function(){
-                    O.toggleStyle({'text-align': val});
+                    O.toggleStyle('text-align', val==='left'?'':val);
                 }
             }
         },
