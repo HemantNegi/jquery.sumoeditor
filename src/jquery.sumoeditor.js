@@ -118,12 +118,6 @@
                 create = function(key, val){
                     if(key in O.buttons){
                         var def = O.buttons[key].call(O, val);
-                        /*
-                        * Function to prepare a unique Key for this button.
-                        * */
-                        def.key = function () {
-                            
-                        }
                         return O.createButton(def);
                     }
                     else{
@@ -146,12 +140,16 @@
                             // create lists and drop-downs.
                             for (var key in obj){
                                 if(Array.isArray(obj[key])){
-                                    var $lst = $('<span class="lst">');
+                                    var $lst = $('<span class="lst">'),
+                                        $drp = $('<span class="drp">');
+                                    $lst.append($drp);
                                     $bar.append($lst);
                                     obj[key].forEach(function(val){
                                         btn = create(key, val);
-                                        $lst.append(btn);
+                                        $drp.append(btn);
                                     });
+
+                                    $lst.width($drp.width());
                                 }
                                 else{
                                     console.error('Improperly formatted button "' + key + '". Not an array');
@@ -478,26 +476,36 @@
         * */
         highlighter: function() {
             var O = this,
-                rng = O.selection.getRange();
+                rng = O.selection.getRange(),
+                /*
+                * highlight the button corresponding to given key.
+                * @param {string} k the tagName/cssProperty.
+                * @param {Element} e the element of selection.
+                * */
+                highFn = function (k, e) {
+                    var btn = O.REG_BUTTONS[k.toUpperCase()];
+                    if(btn){
+                        // add highlighting.
+                        O.HIGH_BUTTONS.push(btn.btn.addClass('high'));
+                        if(btn.high)btn.high.call(O, e);
+                    }
+                };
+
             // remove highlighting.
             O.HIGH_BUTTONS.forEach(function(x){
                 x.removeClass('high');
             });
 
-            $(rng.end).parents().each(function(_, x) {
-                var s = $(x).attr('style');
+            $(rng.end).parents().each(function(_, e) {
+                // matching on base of applied css styles
+                var s = $(e).attr('style');
                 if(s){
-
+                    s.replace(/ /g , '').split(';').forEach(function (x) {
+                        highFn(x, e);
+                    })
                 }
-                var btn = O.REG_BUTTONS[x.tagName.toUpperCase()];
-                debugger;
-                if(btn){
-                    // $(x).css()
 
-                    // add highlighting.
-                    O.HIGH_BUTTONS.push(btn.btn.addClass('high'));
-                    if(btn.high)btn.high.call(O, x);
-                }
+                highFn(e.tagName, e);
             })
         },
 
@@ -1799,7 +1807,7 @@
             var O = this;
             return {
 //                typ: 'inline',
-                tag: 'align',
+                tag: 'text-align:'+val,
                 ico: 'align-' + val,
                 onclick: function(){
                     O.toggleStyle('text-align', val==='left'?'':val);

@@ -135,7 +135,9 @@
 .sumoeditor .toolbar button.high{
     color: #06c;
 }
-
+.sumoeditor .toolbar .lst{display: inline-block;position: relative;width: 25px;}
+.sumoeditor .toolbar .lst .drp{position: absolute;/* height: 20px; */overflow: hidden;}
+.sumoeditor .toolbar .lst button{display: block;}
 .sumoeditor .editor{
     border: 1px solid #ccc;
     border-top: none;
