@@ -123,7 +123,7 @@
     border: 1px solid #ccc;
     padding: 8px;
 }
-.sumoeditor .toolbar .grp{}
+.sumoeditor .toolbar .sumo-grp{}
 .sumoeditor .toolbar button{
     background: transparent;
     border: none;
@@ -135,9 +135,9 @@
 .sumoeditor .toolbar button.high{
     color: #06c;
 }
-.sumoeditor .toolbar .lst{display: inline-block;position: relative;width: 25px;}
-.sumoeditor .toolbar .lst .drp{position: absolute;/* height: 20px; */overflow: hidden;}
-.sumoeditor .toolbar .lst button{display: block;}
+.sumoeditor .toolbar .sumo-lst{display: inline-block;position: relative;width: 25px;}
+.sumoeditor .toolbar .sumo-lst .sumo-drp{position: absolute;/* height: 20px; */overflow: hidden;}
+.sumoeditor .toolbar .sumo-lst button{display: block;}
 .sumoeditor .editor{
     border: 1px solid #ccc;
     border-top: none;

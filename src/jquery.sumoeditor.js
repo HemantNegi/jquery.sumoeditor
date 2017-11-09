@@ -115,10 +115,24 @@
          * */
         setToolbar: function () {
             var O = this, btn,
-                create = function(key, val){
+                /*
+                * @param: {string} key the unique property of button
+                * @param: {!string} val the additional params for buttons
+                * @param: {!jQuery Element} $dis The element ref to buttons header( for button type "style").
+                * */
+                create = function(key, val, $dis){
                     if(key in O.buttons){
                         var def = O.buttons[key].call(O, val);
-                        return O.createButton(def);
+                        def.$dis = $dis;
+
+                        if(def.typ === 'style'){
+                            def.hilDrop = function () {
+                                $dis.empty().append(def.btn.clone());
+                            }
+                        }
+                        // adds a button Element reference ("btn") to created the "def".
+                        O.createButton(def);
+                        return def
                     }
                     else{
                         console.error('Toolbar Button "' + key + '" is not defined.');
@@ -128,11 +142,11 @@
                 parseBtns = function (tools, $bar) {
                     tools.forEach(function (obj) {
                         if (typeof(obj) == 'string' && O.buttons[obj] /*TODO: Remove this check*/) {
-                            btn = create(obj);
+                            btn = create(obj).btn;
                             (btn)?$bar.append(btn):0;
                         }
                         else if (Array.isArray(obj)) {
-                            var $grp = $('<span class="grp">');
+                            var $grp = $('<span class="sumo-grp">');
                             $bar.append($grp);
                             parseBtns(obj, $grp);
                         }
@@ -140,16 +154,21 @@
                             // create lists and drop-downs.
                             for (var key in obj){
                                 if(Array.isArray(obj[key])){
-                                    var $lst = $('<span class="lst">'),
-                                        $drp = $('<span class="drp">');
-                                    $lst.append($drp);
+                                    var $lst = $('<span class="sumo-lst">'),
+                                        $dis = $('<span class="sumo-dis">'),
+                                        $drp = $('<span class="sumo-drp">');
+                                    $lst.append([$dis, $drp]);
                                     $bar.append($lst);
-                                    obj[key].forEach(function(val){
-                                        btn = create(key, val);
-                                        $drp.append(btn);
-                                    });
 
-                                    $lst.width($drp.width());
+                                    var def,
+                                        fdef = 0; // first button.
+                                    obj[key].forEach(function(val){
+                                        def = create(key, val, $dis);
+                                        $drp.append(def.btn);
+                                        if(!fdef)fdef = def;
+                                    });
+                                    if(fdef)fdef.hilDrop();
+                                    // $dis.append($drp.children().first().clone())
                                 }
                                 else{
                                     console.error('Improperly formatted button "' + key + '". Not an array');
@@ -483,11 +502,12 @@
                 * @param {Element} e the element of selection.
                 * */
                 highFn = function (k, e) {
-                    var btn = O.REG_BUTTONS[k.toUpperCase()];
-                    if(btn){
+                    var def = O.REG_BUTTONS[k.toUpperCase()];
+                    if(def){
                         // add highlighting.
-                        O.HIGH_BUTTONS.push(btn.btn.addClass('high'));
-                        if(btn.high)btn.high.call(O, e);
+                        O.HIGH_BUTTONS.push(def.btn.addClass('high'));
+                        if(def.high)def.high.call(O, e);
+                        def.hilDrop()
                     }
                 };
 
@@ -1806,7 +1826,7 @@
         align: function (val) {
             var O = this;
             return {
-//                typ: 'inline',
+                typ: 'style',
                 tag: 'text-align:'+val,
                 ico: 'align-' + val,
                 onclick: function(){
