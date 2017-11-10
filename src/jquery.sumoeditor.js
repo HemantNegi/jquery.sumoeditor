@@ -16,6 +16,7 @@
 
 ;(function ($, window, document, undefined) {
     'use strict';
+    'namespace se';
 
     var Editor = function (elem, opts) {
         var O = this;
@@ -120,14 +121,18 @@
                 * @param: {!string} val the additional params for buttons
                 * @param: {!jQuery Element} $dis The element ref to buttons header( for button type "style").
                 * */
-                create = function(key, val, $dis){
+                create = function(key, val, LST){
                     if(key in O.buttons){
                         var def = O.buttons[key].call(O, val);
-                        def.$dis = $dis;
 
                         if(def.typ === 'style'){
-                            def.hilDrop = function () {
-                                $dis.empty().append(def.btn.clone());
+                            def.setMnu = function (d) {
+                                if(d){ // reset to default value
+                                    LST.$dis.empty().append(LST.caption.btn.clone());
+                                }
+                                else{
+                                    LST.$dis.empty().append(def.btn.clone());
+                                }
                             }
                         }
                         // adds a button Element reference ("btn") to created the "def".
@@ -139,6 +144,64 @@
                         return !1;
                     }
                 },
+
+                /*
+                * create lists and drop-downs.
+                * @param: {jquery Element} $bar the parent element for list.
+                * @param: {string} key the button name eg. "align"
+                * @param: {Array} list array of options.
+                */
+                createLists = function($bar, key, list){
+                    var def,
+                        $lst = $('<span class="sumo-lst">'),
+                        $dis = $('<span class="sumo-dis">'),
+                        $drp = $('<span class="sumo-drp">'),
+                        /*
+                        * typedef: {Object}
+                        * A parent object for menu items.
+                        */
+                        LST = {$dis: $dis},
+                        open = function() {
+                            $lst.addClass('open');
+
+                            $('body').on('click.se', function(e){
+                                if(!$.contains($lst[0], e.target)){
+                                    $lst.removeClass('open');
+                                }
+                            });
+
+                        },
+                        close = function(){
+                            $lst.removeClass('open');
+                            $('body').off('click.se');
+                        };
+
+                    $lst.append([$dis, $drp]);
+                    $bar.append($lst);
+
+                    list.forEach(function(val){
+                        def = create(key, val, LST);
+                        $drp.append(def.btn);
+
+                        if (def.mnu === def.ico){
+                            LST.caption = def; // set the default button.
+                        }
+                        // store a back ref to parent list.
+                        def.LST = LST;
+                    });
+                    if(def)def.setMnu(1); // set the default option.
+
+                    $dis.on('click', function(){
+                        $lst.hasClass('open')?close():open();
+                    });
+                    $drp.on('click', function(){
+                        close();
+                    })
+                },
+
+                /*
+                * start parsing the configuration for buttons.
+                */
                 parseBtns = function (tools, $bar) {
                     tools.forEach(function (obj) {
                         if (typeof(obj) == 'string' && O.buttons[obj] /*TODO: Remove this check*/) {
@@ -151,24 +214,9 @@
                             parseBtns(obj, $grp);
                         }
                         else if (obj && typeof obj === 'object') {
-                            // create lists and drop-downs.
                             for (var key in obj){
                                 if(Array.isArray(obj[key])){
-                                    var $lst = $('<span class="sumo-lst">'),
-                                        $dis = $('<span class="sumo-dis">'),
-                                        $drp = $('<span class="sumo-drp">');
-                                    $lst.append([$dis, $drp]);
-                                    $bar.append($lst);
-
-                                    var def,
-                                        fdef = 0; // first button.
-                                    obj[key].forEach(function(val){
-                                        def = create(key, val, $dis);
-                                        $drp.append(def.btn);
-                                        if(!fdef)fdef = def;
-                                    });
-                                    if(fdef)fdef.hilDrop();
-                                    // $dis.append($drp.children().first().clone())
+                                    createLists($bar, key, obj[key]);
                                 }
                                 else{
                                     console.error('Improperly formatted button "' + key + '". Not an array');
@@ -180,6 +228,7 @@
                         }
                     })
                 }
+
             parseBtns(O.config.toolbar, O.$toolbar);
         },
 
@@ -505,15 +554,17 @@
                     var def = O.REG_BUTTONS[k.toUpperCase()];
                     if(def){
                         // add highlighting.
-                        O.HIGH_BUTTONS.push(def.btn.addClass('high'));
+                        def.btn.addClass('high')
+                        O.HIGH_BUTTONS.push(def);
                         if(def.high)def.high.call(O, e);
-                        def.hilDrop()
+                        if(def.setMnu)def.setMnu();
                     }
                 };
 
             // remove highlighting.
-            O.HIGH_BUTTONS.forEach(function(x){
-                x.removeClass('high');
+            O.HIGH_BUTTONS.forEach(function(def){
+                def.btn.removeClass('high');
+                if(def.setMnu)def.setMnu(1);
             });
 
             $(rng.end).parents().each(function(_, e) {
@@ -646,7 +697,7 @@
         * */
         listHandler: function (lst){
             var r = null, O = this;
-            
+
             var nodes = O.selection.eachBlock(function(el){
 
                 // el is the closest block element.
@@ -1827,9 +1878,10 @@
             var O = this;
             return {
                 typ: 'style',
-                tag: 'text-align:'+val,
+                tag: 'text-align:' + val,
                 ico: 'align-' + val,
-                onclick: function(){
+                mnu: 'align-left', // default icon for menu
+                onclick: function() {
                     O.toggleStyle('text-align', val==='left'?'':val);
                 }
             }

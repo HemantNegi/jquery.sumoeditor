@@ -131,13 +131,49 @@
     font-size: 20px;
     vertical-align: middle;
     color: #444;
+    transition: all .3s;
+}
+.sumoeditor .toolbar button:hover{
+    color: #06c;
 }
 .sumoeditor .toolbar button.high{
     color: #06c;
 }
-.sumoeditor .toolbar .sumo-lst{display: inline-block;position: relative;width: 25px;}
-.sumoeditor .toolbar .sumo-lst .sumo-drp{position: absolute;/* height: 20px; */overflow: hidden;}
-.sumoeditor .toolbar .sumo-lst button{display: block;}
+
+.sumoeditor .toolbar .sumo-lst{
+    display: inline-block;
+    position: relative;
+ }
+.sumoeditor .toolbar .sumo-lst .sumo-dis{
+    display: inline-block;
+    border: 1px solid transparent;
+}
+.sumoeditor .toolbar .sumo-lst .sumo-drp{
+    position: absolute;
+    overflow: hidden;
+    background-color: #fff;
+    border: 1px solid #d0d0d0;
+    box-shadow: 0 1px 8px rgba(0,0,0,.2);
+    padding: 1px 0;
+    display: none;
+ }
+.sumoeditor .toolbar .sumo-lst .sumo-dis{
+    display: block;
+    transition: all 3ms;
+}
+.sumoeditor .toolbar .sumo-lst .sumo-drp button{
+    display: block;
+    margin: 4px 0;
+}
+
+.sumoeditor .toolbar .sumo-lst.open .sumo-dis{
+     border-color:#d0d0d0;
+}
+.sumoeditor .toolbar .sumo-lst.open .sumo-drp{
+    display:block;
+}
+
+
 .sumoeditor .editor{
     border: 1px solid #ccc;
     border-top: none;
