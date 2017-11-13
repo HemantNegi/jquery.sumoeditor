@@ -104,8 +104,9 @@
             O.getContent();
 
             // set initial caret position.
-            var nods = O.utils.textNodes(O.editor);
-            O.caret.setPos($(nods[0]), 0);
+            //var nods = O.utils.textNodes(O.editor);
+            //O.caret.setPos($(nods[0]), 0);
+            O.caret.setPos(O.$editor, 0);
 
             /*TODO: Remove this block*/
             O.$wrapper.after(O.$e);
@@ -245,7 +246,7 @@
 
             btn.on('click', function (evt) {
                 evt.preventDefault();
-                evt.stopPropagation();
+                //evt.stopPropagation();
 
                 if(typeof def.onclick === 'function')
                     def.onclick.call(this, def);
@@ -263,6 +264,7 @@
 
                 O.getContent();
                 O.highlighter();
+                O.history.add();
             })
 
             def.btn = btn;
@@ -309,7 +311,7 @@
 
             // toolbar click handler.
             O.$toolbar.on('click', function () {
-                O.utils.modal();
+                //O.utils.modal();
             })
 
             // handle key presses.
@@ -350,7 +352,7 @@
 
                 // O.getContent(); // getContent() is called form history.add() so no need.
                 O.history.add();
-                O.utils.modal();
+                //O.utils.modal();
                 O.highlighter();
             });
 
@@ -1249,53 +1251,51 @@
         },
 
         /*
-        * Sets the caret position in a given element and at given offset.
+        * Sets the caret position wrt to a given element and at given offset.
         * @param {jQuery Element} $E
         * @param {number} pos The position offset.
         * */
         setPos: function ($E, pos) {
+            var o = this;
 
-            var o = this,
-                createRange = function (node, chars, range) {
-                    if (!range) {
-                        range = document.createRange()
-                        range.selectNode(node);
-                        range.setStart(node, 0);
-                    }
+            // special case: when setting position wrt to editor container, set at the first text node.
+            if($E[0] === o.O.editor && pos === 0){
+                var nods = o.O.utils.textNodes($E[0]);
+                $E = $(nods[0]);
+            }
 
-                    if (chars.count === 0) {
-                        range.setEnd(node, chars.count);
-                    } else if (node && chars.count > 0) {
+            var rngObj = function(e, p){
+                    return {start: e, so:p, end: e, eo: p}
+                },
+                createRange = function (node, p) {
+                    var rng;
+
+                    if (p === 0) {
+                        rng = rngObj(node, p);
+                    } else if (node && p > 0) {
                         if (node.nodeType === Node.TEXT_NODE) {
-                            if (node.textContent.length < chars.count) {
-                                chars.count -= node.textContent.length;
+                            if (node.textContent.length < p) {
+                                p -= node.textContent.length;
                             } else {
-                                range.setEnd(node, chars.count);
-                                chars.count = 0;
+                                rng = rngObj(node, p);
+                                p = 0;
                             }
                         } else {
                             for (var lp = 0; lp < node.childNodes.length; lp++) {
-                                range = createRange(node.childNodes[lp], chars, range);
+                                rng = createRange(node.childNodes[lp], p);
 
-                                if (chars.count === 0) {
+                                if (p === 0) {
                                     break;
                                 }
                             }
                         }
                     }
-
-                    return range;
+                    return rng;
             };
 
             if (pos >= 0) {
-                var sel = o.O.selection.obj(),
-                    range = createRange($E[0], {count: pos});
-
-                if (range) {
-                    range.collapse(false);
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                }
+                var rng = createRange($E[0], pos, {});
+                o.O.selection.setRange(rng);
             }
 
         }
@@ -1649,11 +1649,20 @@
             });
 
             $m = $('<div class="sumo-modal">');
+
+            // handle closing of the modal.
             $m.on('keydown', function (e) {
                 if (e.keyCode == 27){ // escape key
                     $m.remove();
                 }
             });
+            // disconnect from main thread as, this event will bubble up and in turn call this handler.
+            setTimeout(function(){
+                o.O.$wrapper.one('click.se', function(){
+                    $m.remove();
+                });
+            }, 10)
+
             $m.append($f);
             o.O.$wrapper.append($m);
             $f.append($c);
