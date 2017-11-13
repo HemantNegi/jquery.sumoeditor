@@ -1631,9 +1631,13 @@
         * */
         modal: function ($c, cb) {
             var o = this,
+                rm = function (m) {
+                    m.remove();
+                    o.O.$wrapper.off('click.se');
+                },
                 $m = o.O.$wrapper.find('.sumo-modal');
             if($m.length) {
-                $m.remove();
+                rm($m);
                 return
             }
             if(!$c)return;
@@ -1644,29 +1648,28 @@
                 $(this).serializeArray().forEach(function(x){
 	                D[x.name] = x.value
                 })
-                if(cb && !cb(D)) $m.remove();
+                if(cb && !cb(D)) rm($m);
                 return false;
             });
 
             $m = $('<div class="sumo-modal">');
-
-            // handle closing of the modal.
-            $m.on('keydown', function (e) {
-                if (e.keyCode == 27){ // escape key
-                    $m.remove();
-                }
-            });
-            // disconnect from main thread as, this event will bubble up and in turn call this handler.
-            setTimeout(function(){
-                o.O.$wrapper.one('click.se', function(){
-                    $m.remove();
-                });
-            }, 10)
-
             $m.append($f);
             o.O.$wrapper.append($m);
             $f.append($c);
             $f.find('input').first().focus();
+
+            // handle closing of the modal.
+            $m.on('keydown', function (e) {
+                if (e.keyCode == 27){ // escape key
+                    rm($m);
+                }
+            });
+            // disconnect from main thread as, this event will bubble up and in turn call this handler.
+            setTimeout(function(){
+                o.O.$wrapper.on('click.se', function(e){
+                    if(!$.contains($m[0], e.target)) rm($m);
+                });
+            }, 10)
 
             // position in center.
             var cord = o.O.selection.getCoords(),
