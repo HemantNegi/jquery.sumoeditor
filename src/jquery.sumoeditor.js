@@ -7,7 +7,7 @@
  * http://www.opensource.org/licenses/MIT
  */
 
- /*
+/*
  TODO: these are builtin functions that can be used.
  - https://developer.mozilla.org/en-US/docs/Web/API/Range/insertNode
  - https://developer.mozilla.org/en-US/docs/Web/API/Node/normalize
@@ -38,6 +38,7 @@
             placeholder: 'Start writing here...',
             toolbar: [
                 ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
+                {'size': [{'Small': '10px'}, {'Normal': false}, {'Large':'22px'}, {'Huge': '32px'}]},
                 ['quote', 'code'],
 
 //                [{'header': 1}, {'header': 2}],               // custom button values
@@ -45,7 +46,7 @@
 //                [{'direction': 'rtl'}],                         // text direction
 
 //                [{'size': ['small', false, 'large', 'huge']}],  // custom dropdown
-                [{'align': ['left', 'right', 'center', 'justify']}],
+                [{'align': [false, 'right', 'center', 'justify']}],
 
 //                [{'color': []}, {'background': []}],          // dropdown with defaults from theme
 //                [{'font': []}],
@@ -623,9 +624,10 @@
         },
 
         /*
-         * tag: {string} valid name of an inline tag to create.
+         * @param: {string} valid name of an inline tag to create.
+         * @param: {Array} style an array with css attribute and its value as two items.
          */
-        toggleInline: function (tag) {
+        toggleInline: function (tag, style) {
             var O = this,
                 an = null, // flag to apply uniform operation on the selection.
                 Tag = '<' + tag + '>';
@@ -661,6 +663,7 @@
                 // wrap selection.
                 if (!an && !m) {
                     $(n).wrapAll(Tag);
+                    $(n).parent().css(style[0], style[1]);
                 }
 
                 return n;
@@ -1297,7 +1300,6 @@
                 var rng = createRange($E[0], pos, {});
                 o.O.selection.setRange(rng);
             }
-
         }
     };
 
@@ -1887,7 +1889,8 @@
             }
         },
         align: function (val) {
-            var O = this;
+            var O = this,
+                val = (!val)? 'left': val;
             return {
                 typ: 'style',
                 tag: 'text-align:' + val,
@@ -1895,6 +1898,28 @@
                 mnu: 'align-left', // default icon for menu
                 onclick: function() {
                     O.toggleStyle('text-align', val==='left'?'':val);
+                }
+            }
+        },
+
+        size: function (parm) {
+            var key, val;
+            for (var x in parm) {
+                key=x;
+                val = parm[key]
+            }
+
+            var O = this,
+                style = ['font-size', val];
+
+            return {
+                typ: 'style',
+                tag: 'text-align:' + val,
+                ico: 'align-' + 'left',
+                mnu: 'align-left', // default icon for menu
+                onclick: function() {
+                    // O.toggleStyle('text-align', val==='left'?'':val);
+                    O.toggleInline('span', style);
                 }
             }
         },
