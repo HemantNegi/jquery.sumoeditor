@@ -631,13 +631,23 @@
         toggleInline: function (tag, style) {
             var O = this,
                 an = null, // flag to apply uniform operation on the selection.
-                Tag = '<' + tag + '>';
+                Tag = '<' + tag + '>',
+                addStyle = function (n) {
+                    $(n).css(style[0], style[1]);
+                };
                 // Tag = '<a href="http://good.com">';
 
             O.selection.eachInline(function (n) {
                 var first = n[0],
                     last = n[n.length - 1],
                     m = O.utils.ancestorIs(first, tag);
+
+                if(style && m){
+                    if(style[0].toUpperCase() in O.utils.getStyle(m)){
+                        addStyle(m);
+                        return n
+                    }
+                }
                 an = an == null ? m : an;
 
                 // unwrap selection.
@@ -664,7 +674,7 @@
                 // wrap selection.
                 if (!an && !m) {
                     $(n).wrapAll(Tag);
-                    $(n).parent().css(style[0], style[1]);
+                    if(style)addStyle(n[0].parentNode);
                 }
 
                 return n;
@@ -1695,6 +1705,24 @@
             T = (T + h > eh && tp > 1)? tp: T + 22;
 
             $m.css({left: L, top: T});
+        },
+
+        /*
+        * Gets an object of css properties applied on a node
+        * @param: {Element} n The element to get styles from.
+        * @return: {object} the Object containing applied styles to the node.
+        * */
+        getStyle: function (n) {
+            var S={},
+                r,
+                styles = n.getAttribute('style');
+            if(!styles) return S;
+            styles.toUpperCase().split(';').forEach(function(x){
+                if(!x.trim()) return;
+                r = x.split(':')
+                S[r[0].trim()] = r[1].trim();
+            });
+            return S
         },
 
 /*        hasStyle: function ($e, key, val) {
