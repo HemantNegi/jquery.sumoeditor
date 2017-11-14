@@ -12,6 +12,7 @@
  - https://developer.mozilla.org/en-US/docs/Web/API/Range/insertNode
  - https://developer.mozilla.org/en-US/docs/Web/API/Node/normalize
  - https://developer.mozilla.org/en-US/docs/Web/API/Text/splitText
+ - add attribute to link tags rel="noopener noreferrer"
  */
 
 ;(function ($, window, document, undefined) {
