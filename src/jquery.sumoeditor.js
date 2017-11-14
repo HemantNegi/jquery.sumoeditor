@@ -640,12 +640,16 @@
             O.selection.eachInline(function (n) {
                 var first = n[0],
                     last = n[n.length - 1],
-                    m = O.utils.ancestorIs(first, tag);
+                    m = O.utils.ancestorIs(first, tag),
+                    _m = m;
 
                 if(style && m){
-                    if(style[0].toUpperCase() in O.utils.getStyle(m)){
-                        addStyle(m);
-                        return n
+                    var c = style[0].toUpperCase(),
+                        s = O.utils.getStyle(m);
+                    if(!(c in s && s[c] === style[1].toUpperCase())){
+                        // addStyle(m);
+                        // return n
+                        m = false
                     }
                 }
                 an = an == null ? m : an;
@@ -671,9 +675,9 @@
                     $(m.childNodes[0]).unwrap();
                 }
 
-                // wrap selection.
+                // wrap or update style of selection.
                 if (!an && !m) {
-                    $(n).wrapAll(Tag);
+                    if(!_m ) $(n).wrapAll(Tag);
                     if(style)addStyle(n[0].parentNode);
                 }
 
