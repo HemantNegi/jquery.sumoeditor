@@ -186,7 +186,7 @@
                         def = create(key, val, LST);
                         $drp.append(def.btn);
 
-                        if (def.mnu === def.ico){
+                        if (def.mnu){
                             LST.caption = def; // set the default button.
                         }
                         // store a back ref to parent list.
@@ -242,7 +242,9 @@
         * */
         createButton: function (def) {
             var O = this,
-                btn = $('<button>').addClass('sico-' + def.ico);
+                btn = $('<button>');
+                if(def.ico)btn.addClass('sico-' + def.ico);
+                if(def.txt)btn.text(def.txt);
 
             if(def.rmOnBkSpace) this.bkArr.push(def.tag);
 
@@ -641,17 +643,25 @@
                 var first = n[0],
                     last = n[n.length - 1],
                     m = O.utils.ancestorIs(first, tag),
-                    _m = m;
+                    _m = m,
+                    css = !1;
 
-                if(style && m){
-                    var c = style[0].toUpperCase(),
-                        s = O.utils.getStyle(m);
-                    if(!(c in s && s[c] === style[1].toUpperCase())){
-                        // addStyle(m);
-                        // return n
-                        m = false
+                // whether wrap or unwrap is decided by "m".
+                if(style){
+                    if(m){
+                        var c = style[0].toUpperCase();
+                        css = O.utils.getStyle(m);
+                        // if given element does not exists exactly after matching css rules.
+                        if(style[1] && !(c in css && css[c] === style[1].toUpperCase())){
+                            m = false
+                        }
+                    }
+                    else{
+                        // if not already wrapped and value is false(default value) do nothing.
+                        if(!style[1]) return n;
                     }
                 }
+
                 an = an == null ? m : an;
 
                 // unwrap selection.
@@ -661,15 +671,29 @@
 
                     // for left side.
                     if (end >= 0) {
-                        var nods = O.utils.textNodesWithin(tN[0], tN[end], tag);
-                        nods.forEach(function (x) {$(x).wrapAll(Tag);})
+                        var nods = O.utils.textNodesWithin(tN[0], tN[end]);
+                        nods.forEach(function (x) {$(x).wrapAll(m.cloneNode());})
                     }
 
                     // now for right side.
                     var start = tN.indexOf(last) + 1;
                     if (start <= tN.length - 1) { // both start and end are equal and no need to wrap.
-                        nods = O.utils.textNodesWithin(tN[start], tN[tN.length - 1], tag);
-                        nods.forEach(function (x) {$(x).wrapAll(Tag);})
+                        nods = O.utils.textNodesWithin(tN[start], tN[tN.length - 1]);
+                        nods.forEach(function (x) {$(x).wrapAll(m.cloneNode());})
+                    }
+
+                    // handle multiple styles scenario here.
+                    // do not directly remove the tag. first check if some of the styles are required there.
+                    if(css){
+                        var _s = '';
+                        delete css[style[0].toUpperCase()];
+                        for(var k in css){
+                            _s += k + ':' + css[k] + ';'
+                        }
+                        if(_s){
+                            $(n).wrapAll(m.cloneNode());
+                            n[0].parentNode.setAttribute('style', _s.toLowerCase());
+                        }
                     }
 
                     $(m.childNodes[0]).unwrap();
@@ -677,7 +701,9 @@
 
                 // wrap or update style of selection.
                 if (!an && !m) {
-                    if(!_m ) $(n).wrapAll(Tag);
+                    //this check provides the update of styles.
+                    if(!(_m && n.length === _m.childNodes.length))
+                        $(n).wrapAll(Tag);
                     if(style)addStyle(n[0].parentNode);
                 }
 
@@ -893,6 +919,7 @@
         * @return {string}
         * */
         getContent: function () {
+            this.editor.normalize();
             var $e = this.$editor,
                 x = $e.text(),
                 $c = $e.children(),
@@ -1285,24 +1312,24 @@
             var rngObj = function(e, p){
                     return {start: e, so:p, end: e, eo: p}
                 },
-                createRange = function (node, p) {
+                createRange = function (node, c) {
                     var rng;
 
-                    if (p === 0) {
-                        rng = rngObj(node, p);
-                    } else if (node && p > 0) {
+                    if (c.p === 0) {
+                        rng = rngObj(node, c.p);
+                    } else if (node && c.p > 0) {
                         if (node.nodeType === Node.TEXT_NODE) {
-                            if (node.textContent.length < p) {
-                                p -= node.textContent.length;
+                            if (node.textContent.length < c.p) {
+                                c.p -= node.textContent.length;
                             } else {
-                                rng = rngObj(node, p);
-                                p = 0;
+                                rng = rngObj(node, c.p);
+                                c.p = 0;
                             }
                         } else {
                             for (var lp = 0; lp < node.childNodes.length; lp++) {
-                                rng = createRange(node.childNodes[lp], p);
+                                rng = createRange(node.childNodes[lp], c);
 
-                                if (p === 0) {
+                                if (c.p === 0) {
                                     break;
                                 }
                             }
@@ -1312,8 +1339,9 @@
             };
 
             if (pos >= 0) {
-                var rng = createRange($E[0], pos, {});
-                o.O.selection.setRange(rng);
+                var rng = createRange($E[0], {p:pos}, {});
+                if(!rng)debugger;
+                o.O.selection.setRange(rng); 
             }
         }
     };
@@ -1947,9 +1975,10 @@
 
             return {
                 typ: 'style',
-                tag: 'text-align:' + val,
-                ico: 'align-' + 'left',
-                mnu: 'align-left', // default icon for menu
+                tag: 'font-size:' + val,
+//                ico: 'align-' + 'left',
+                txt: key,
+                mnu: !val,//'align-left', // default icon for menu
                 onclick: function() {
                     // O.toggleStyle('text-align', val==='left'?'':val);
                     O.toggleInline('span', style);
