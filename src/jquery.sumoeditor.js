@@ -38,8 +38,8 @@
         defaults: {
             placeholder: 'Start writing here...',
             toolbar: [
+                [{'size': [{'Small': '10px'}, {'Normal': false}, {'Large':'22px'}, {'Huge': '32px'}]}],
                 ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
-                {'size': [{'Small': '10px'}, {'Normal': false}, {'Large':'22px'}, {'Huge': '32px'}]},
                 ['quote', 'code'],
 
 //                [{'header': 1}, {'header': 2}],               // custom button values
@@ -127,7 +127,7 @@
                 create = function(key, val, LST){
                     if(key in O.buttons){
                         var def = O.buttons[key].call(O, val);
-
+                        def.key = key;
                         if(def.typ === 'style'){
                             def.setMnu = function (d) {
                                 if(d){ // reset to default value
@@ -156,7 +156,7 @@
                 */
                 createLists = function($bar, key, list){
                     var def,
-                        $lst = $('<span class="sumo-lst">'),
+                        $lst = $('<span class="sumo-lst '+ key +'">'),
                         $dis = $('<span class="sumo-dis">'),
                         $drp = $('<span class="sumo-drp">'),
                         /*
@@ -192,7 +192,10 @@
                         // store a back ref to parent list.
                         def.LST = LST;
                     });
-                    if(def)def.setMnu(1); // set the default option.
+                    if(def){
+                        def.setMnu(1);         // set the default option.
+                        if(def.txt)$dis.addClass('sico-down-arrow')
+                    }
 
                     $dis.on('click', function(){
                         $lst.hasClass('open')?close():open();
@@ -717,14 +720,13 @@
         * @param {!string} val a css property value to apply.
         **/
         toggleStyle: function(key, val){
-            var O = this, r = null;
+            var O = this;
 
             O.selection.eachBlock(function (mE) {
                 mE = $(mE);
                 // debugger;
-                r = r == null ? mE.css(key) === val : r;
 
-                if (r) {
+                if (!val) {
                     // remove the style
                     mE.css(key, '');
                 }
@@ -1950,25 +1952,21 @@
             }
         },
         align: function (val) {
-            var O = this,
-                val = (!val)? 'left': val;
+            var O = this;
             return {
                 typ: 'style',
                 tag: 'text-align:' + val,
-                ico: 'align-' + val,
-                mnu: 'align-left', // default icon for menu
+                ico: 'align-' + ((!val)? 'left': val),
+                mnu: !val,
                 onclick: function() {
-                    O.toggleStyle('text-align', val==='left'?'':val);
+                    O.toggleStyle('text-align', val);
                 }
             }
         },
 
         size: function (parm) {
             var key, val;
-            for (var x in parm) {
-                key=x;
-                val = parm[key]
-            }
+            for (key in parm) {val = parm[key]}
 
             var O = this,
                 style = ['font-size', val];
@@ -1976,11 +1974,9 @@
             return {
                 typ: 'style',
                 tag: 'font-size:' + val,
-//                ico: 'align-' + 'left',
                 txt: key,
-                mnu: !val,//'align-left', // default icon for menu
+                mnu: !val,
                 onclick: function() {
-                    // O.toggleStyle('text-align', val==='left'?'':val);
                     O.toggleInline('span', style);
                 }
             }

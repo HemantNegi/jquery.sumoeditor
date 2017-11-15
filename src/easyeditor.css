@@ -123,15 +123,18 @@
     border: 1px solid #ccc;
     padding: 8px;
 }
-.sumoeditor .toolbar .sumo-grp{}
+.sumoeditor .toolbar .sumo-grp{
+    margin-right: 10px;
+}
 .sumoeditor .toolbar button{
     background: transparent;
     border: none;
-    padding: 0px 4px;
+    padding: 4px;
     font-size: 20px;
     vertical-align: middle;
     color: #444;
     transition: all .3s;
+    user-select: none;
 }
 .sumoeditor .toolbar button:hover{
     color: #06c;
@@ -160,19 +163,35 @@
 .sumoeditor .toolbar .sumo-lst .sumo-dis{
     display: block;
     transition: all 3ms;
+    cursor: pointer;
 }
+
+.sumoeditor .toolbar .sumo-lst .sumo-dis.sico-down-arrow{padding: 3px 14px 1px 4px;}
+.sumoeditor .toolbar .sumo-lst .sumo-dis.sico-down-arrow:before{position: absolute;right: 0;top: 9px;}
+
 .sumoeditor .toolbar .sumo-lst .sumo-drp button{
     display: block;
     margin: 4px 0;
 }
+/*.sumoeditor .toolbar .sumo-lst .sumo-drp button.high{*/
+    /*display: none;*/
+/*}*/
 
 .sumoeditor .toolbar .sumo-lst.open .sumo-dis{
      border-color:#d0d0d0;
 }
 .sumoeditor .toolbar .sumo-lst.open .sumo-drp{
     display:block;
+    min-width: 100%;
+    box-sizing: border-box;
 }
 
+.sumoeditor .toolbar .sumo-lst.size{width: 80px;}
+.sumoeditor .toolbar .sumo-lst.size button{
+    font-size: inherit;
+}
+
+/* Editor styles */
 
 .sumoeditor .editor{
     border: 1px solid #ccc;
