@@ -536,7 +536,7 @@
 
             O.utils.setBlank($curBElm);
             O.utils.setBlank($n);
-            O.caret.setPos($n, 0);
+            O.caret.setPos($n, 0); 
 
             return !0;
         },
@@ -1347,11 +1347,15 @@
     Editor.prototype.utils = {
 
         /*
-        * Sets the empty character in a blank row.
+        * Sets the empty character(<br>) in a blank line.
         * @param {jQuery Element} row element
         * */
         setBlank: function ($e) {
-            if ($e.html().trim() === '') {
+            if ($e.text() === '') {
+                while($e.children().length > 0){
+                    $e = $e.children().first();
+                }
+
                 $e.html('<br/>');
             }
         },
