@@ -270,7 +270,7 @@
 
                 }
 
-                
+
                 O.editor.normalize();
                 O.highlighter();
                 O.history.add();
@@ -633,7 +633,7 @@
                 an = null, // flag to apply uniform operation on the selection.
                 Tag = '<' + tag + '>',
                 addStyle = function (n) {
-                    $(n).css(style[0], style[1]);
+                    O.utils.css($(n),style[0], style[1]);
                 };
                 // Tag = '<a href="http://good.com">';
 
@@ -723,10 +723,10 @@
 
                 if (!val) {
                     // remove the style
-                    mE.css(key, '');
+                    O.utils.css(mE, key, '');
                 }
                 else {
-                    mE.css(key, val);
+                    O.utils.css(mE, key, val);
                 }
 
                 return mE[0];
@@ -1753,6 +1753,16 @@
             return S
         },
 
+        /*
+        * Sets a css property.
+        * @param: {jQuery Element} $e the element to apply style to.
+        * @param: {string} k the css property.
+        * @param: {!string} v the value for css property.
+        * */
+        css: function ($e, k, v) {
+            $e.css(k, v);
+            !$e.attr('style')?$e.removeAttr():0;
+        }
 /*        hasStyle: function ($e, key, val) {
             var s = $e.attr('style');
             if(s){
