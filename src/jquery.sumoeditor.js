@@ -98,7 +98,8 @@
             O.$editor.attr('placeholder', O.config.placeholder || O.$e.attr('placeholder'));
 
             O.$editor.html(O.$e.text());
-            O.utils.sanitizeContent(O.$editor);
+            !!O.$editor.text().trim()? O.utils.sanitizeContent(O.$editor): O.$editor.empty();
+            
             if (!O.$editor.children().length ) {
                 O.utils.addLine(O.$editor);
             }
@@ -269,7 +270,8 @@
 
                 }
 
-                O.getContent();
+                
+                O.editor.normalize();
                 O.highlighter();
                 O.history.add();
             })
@@ -339,27 +341,20 @@
                     //O.utils.modal();
                 }
 
-                // update contents of underlying actual element.
-                // O.getContent();
-
                 if(pd) {
                     e.preventDefault();
                     return !1;
                 }
+
             });
+
+            // input is triggered when actually some text is written to textbox.
+            O.$editor.on('input', function (e) {
+                O.history.add();
+            })
 
             // caret position update.
             O.$editor.on('keyup click', function (evt) {
-                // #HISTORY
-                // var node = O.getNode().parentsUntil(O.elem).andSelf().first();
-                // var n = O.getCursorPos(node);
-                // O.currentElement = node;
-                // O.cursorPos = n;
-                // console.log('pos: ', n, 'node: ', node);
-
-                // O.getContent(); // getContent() is called form history.add() so no need.
-                O.history.add();
-                //O.utils.modal();
                 O.highlighter();
             });
 
@@ -921,16 +916,14 @@
         * @return {string}
         * */
         getContent: function () {
-            this.editor.normalize();
             var $e = this.$editor,
                 x = $e.text(),
-                $c = $e.children(),
                 txt = x === '' ? '' : $e.html();
 
             this.$e.text(txt);
-            setTimeout(function(){
-                $e.toggleClass('blank', ($c.length < 2 && !$e.text() && $c.first().is('p')));
-            }, 10);
+
+            // handle placeholder.
+            $e.toggleClass('blank', !x);
             return txt;
         },
 
@@ -1646,6 +1639,7 @@
         addLine: function ($e) {
             var n = $('<p><br/></p>');
             n.prepend(document.createTextNode(''));
+            // n.prepend(document.createTextNode('\u200B'));
             $e.append(n);
             return n;
         },
