@@ -171,7 +171,9 @@
 
 .sumoeditor .toolbar .sumo-lst .sumo-drp button{
     display: block;
-    margin: 4px 0;
+    padding: 6px 8px;
+    width: 100%;
+    text-align: left;
 }
 /*.sumoeditor .toolbar .sumo-lst .sumo-drp button.high{*/
     /*display: none;*/

@@ -748,8 +748,6 @@
                 var $elm,
                     $el = $(O.utils.ancestorIs(el, 'li') || el);
                 r = r == null ? $el.parent().is(lst) : r;
-                // r = r == null ? O.utils.ancestorIs($el, lst) : r;
-                // $el = $($el);
 
                 if(r){
                     // removing lst
@@ -905,7 +903,8 @@
                     $('<' + lst + '>').append($li)
                 );
             }
-
+            
+            this.utils.copyStyle($el, $li);
             $el.remove();
             return $li
         },
@@ -1372,11 +1371,24 @@
                 return this.unList($n);
             }
 
-            var $m = $('<'+ t +'>');
+            var $m = $('<'+ t + '>');
             $m.html($n.contents());
             $n.after($m);
+            this.copyStyle($n, $m);
             $n.remove();
             return $m;
+        },
+
+        /*
+        * copy style attribute form source to destination.
+        * @param: {jQuery Element} $s the source node
+        * @param: {jQuery Element} $s the target node
+        */
+        copyStyle: function($s, $d){
+            var s = $s.attr('style');
+            if(s && s.trim()){
+                $d.attr('style', s);
+            }
         },
 
         /*
@@ -1765,7 +1777,7 @@
         * */
         css: function ($e, k, v) {
             $e.css(k, v);
-            !$e.attr('style')?$e.removeAttr():0;
+            !$e.attr('style')?$e.removeAttr('style'):0;
         }
 /*        hasStyle: function ($e, key, val) {
             var s = $e.attr('style');
