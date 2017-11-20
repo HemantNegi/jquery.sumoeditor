@@ -355,6 +355,10 @@
 
             // caret position update.
             O.$editor.on('keyup click', function (evt) {
+
+                // close any existing open modals if any.
+                O.utils.modal();
+
                 O.highlighter();
             });
 
