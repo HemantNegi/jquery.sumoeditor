@@ -1971,6 +1971,7 @@
                 tag: 'sup'
             }
         },
+
         align: function (val) {
             var O = this;
             return {
@@ -1983,7 +1984,6 @@
                 }
             }
         },
-
         size: function (parm) {
             var key, val;
             for (key in parm) {val = parm[key]}
@@ -2003,8 +2003,21 @@
         },
 
         clean:function () {
+            var O = this;
             return {
                 ico: 'clean',
+                onclick: function(){
+                    O.selection.eachBlock(function (n) {
+                        var $n = $(n),
+                            // allowing li for now.
+                            $e = $n.is('li')? $('<li>'):$('<p>');
+
+                        $n.before($e);
+                        $e.append(O.utils.textNodes(n));
+                        $n.remove();
+                        return $e[0];
+                    });
+                }
             }
         },
 
