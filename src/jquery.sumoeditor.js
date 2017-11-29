@@ -43,11 +43,13 @@
                 ['quote', 'code'],
 
 //                [{'header': 1}, {'header': 2}],               // custom button values
-                ['ol', 'ul', 'indent', 'unindent', 'sub', 'sup', 'link', 'undo', 'redo'],
+                ['ol', 'ul', {'align': [false, 'right', 'center', 'justify']},
+                    'indent', 'unindent', 'sub', 'sup'],
+                ['undo', 'redo'],
+                ['link', 'img'],
 //                [{'direction': 'rtl'}],                         // text direction
 
 //                [{'size': ['small', false, 'large', 'huge']}],  // custom dropdown
-                [{'align': [false, 'right', 'center', 'justify']}],
 
 //                [{'color': []}, {'background': []}],          // dropdown with defaults from theme
 //                [{'font': []}],
@@ -877,6 +879,70 @@
             });
         },
 
+        imgHandler: function () {
+            this.selection.insertNode($('<p>####</p>'))
+            return;
+            var O = this,
+                R = O.selection.getRange(),
+                isPoint = R.start === R.end,
+
+                // modal markup.
+                $c = $('<p><label for="sumo_img_url">URL</label><span><input name="sumo_img_url" id="sumo_img_url" placeholder="Image url here..." type="text"/></span></p>' +
+                    '<p><label for="sumo_title">Title</label><span><input name="sumo_title" id="sumo_title" placeholder="Description for image" type="text"/></span></p>' +
+                    // '<p><span class="_lst"><label class="sumo-chbox"><input id="sumo_chkbx" name="sumo_chkbx" type="checkbox"/><span></span>New tab</label></span>' +
+                    '<p><input id="sumo_submit" type="submit" value="Insert"/></p>'),
+
+                _submit = $c.find('#sumo_submit'),
+                _img_url = $c.find('#sumo_img_url'),
+                _title = $c.find('#sumo_title'),
+
+                setA = function ($a, D) {
+                    $a.attr('href', D.sumo_lnk);
+                    if (D.sumo_chkbx) {
+                        $a.attr('target', '_blank')
+                    }
+                    else {
+                        $a.removeAttr('target')
+                    }
+                },
+                btnV = function(){
+                    _submit[0].disabled = !_img_url.val();
+                };
+
+            // if already in <a> but point selection.
+            var _a = O.utils.ancestorIs(R.end, 'a')
+
+            O.utils.modal($c, function (D) {
+                var an = null,   // flag to apply uniform operation on the selection.
+                    obj = O.selection.textNodes(R), // preserve the selection.
+                    $tag = $('<a>');
+
+                O.selection.eachInline(function (n) {
+                    var first = n[0],
+                        a = O.utils.ancestorIs(first, 'a');
+                    an = an == null ? a : an;
+
+                    // wrap selection.
+                    var $a = $(a);
+                    if (!an && !a) {
+                        $(n).wrapAll($tag);
+                        $a = $(n).parent();
+                        if (isPoint) {
+                            $a.text(D.sumo_lnk_txt);
+                            n = $a.contents();
+                        }
+                    }
+
+                    setA($a, D);
+                    return n;
+                }, obj);
+            });
+
+            // validation on url, empty images are not allowed.
+            _img_url.on('keyup', btnV);
+            btnV();
+        },
+
         /*
         * Wraps/replace an element($el) to list.
         * @param {string} lst the list element can be 'ol' or 'ul'
@@ -1143,6 +1209,7 @@
         *     this callback function will have to return the newly created Element
         *     if any, or the same element passed as an argument.
         * @param {Object=} obj the textNodes object
+        * @return {Array{Array[Elements]}} an array of text nodes in the selection.
         * */
         eachInline: function (modify, obj) {
             var o = this, R;
@@ -1151,28 +1218,26 @@
                 obj = o.textNodes(R);
             }
 
-            R = obj.rng
-            // var isPoint = R.start === R.end && R.so === R.eo;
+            if(modify) {
+                R = obj.rng
+                // var isPoint = R.start === R.end && R.so === R.eo;
 
-            $.each(obj.nods, function (i, n) {
-                // must return the nodes whether modified or not.
-                var cr = modify(n);
+                $.each(obj.nods, function (i, n) {
+                    // must return the nodes whether modified or not.
+                    var cr = modify(n);
 
-                // if we have modified selection containers update them.
-                if (n[0] == R.start)
-                    R.start = cr[0];
-                if (n[n.length - 1] == R.end) {
-                    R.end = cr[cr.length - 1];
-                    R.eo = R.end.textContent.length
-                }
+                    // if we have modified selection containers update them.
+                    if (n[0] == R.start)
+                        R.start = cr[0];
+                    if (n[n.length - 1] == R.end) {
+                        R.end = cr[cr.length - 1];
+                        R.eo = R.end.textContent.length
+                    }
+                });
+                o.setRange(R);
+            }
 
-                // TODO: Cleanup if never occur- Exceptional: ("\u200B") should be removed so include in selection.
-                // if(isPoint && R.so == 0){
-                //     debugger;
-                //     R.eo = 1;
-                // }
-            });
-            o.setRange(R);
+            return obj.nods;
         },
 
         /*
@@ -1234,8 +1299,37 @@
             }
 
             return {x: rect.left - ed.left, y: rect.top - ed.top};
+        },
+
+        /*
+        * Inserts a node at the caret position, also removes the selected nodes if any.
+        * @param {jQuery Element} $e the element to insert.
+        * */
+        insertNode: function ($e) {
+            var o = this,
+                nods = o.eachInline();
+
+            $(nods[0][0]).before($e);
+
+            // remove the selected nodes.
+            nods.forEach(function (n) {
+                // remove parent also if empty
+                var f = function (n) {
+                    if(n[0].parentNode != o.O.editor && n[0].parentNode.childNodes.length === n.length){
+                        f([n[0].parentNode]);
+                    }
+                    else {
+                        $(n).remove();
+                    }
+                }
+                f(n);
+            });
+
+            // o.O.caret.setPos($e,0);
+            
         }
-    };
+
+    },
 
     /*
     * Module contains Caret related methods.
@@ -1925,6 +2019,22 @@
                     console.log('highlighted a');
                     O.linkOver(e);
                 }
+                // typ: 'inline',
+            }
+        },
+        img: function () {
+            var O = this;
+            return {
+                ico: 'image',
+                tag: 'img',
+                onclick: function () {
+                    O.imgHandler();
+
+                },
+                // high: function (e) {
+                //     console.log('highlighted a');
+                //     O.linkOver(e);
+                // }
                 // typ: 'inline',
             }
         },

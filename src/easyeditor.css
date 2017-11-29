@@ -231,7 +231,7 @@
 .sumo-modal p > label{
     position: absolute;
     left: 0;
-    top: 3px;
+    top: 6px;
 }
 .sumo-modal p span{
     display: block;
