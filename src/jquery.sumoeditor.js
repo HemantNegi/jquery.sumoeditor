@@ -1278,6 +1278,9 @@
 
             // o.O.caret.setPos($e,0);
             o.obj().selectAllChildren($e[0]);
+
+            // we should also create history here.
+            o.O.history.add();
         }
 
     },
