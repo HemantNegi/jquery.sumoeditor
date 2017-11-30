@@ -845,8 +845,8 @@
             }
 
             // validation on links, empty links are not allowed.
-            _lnk.on('keyup', btnV);
-            _lnk_txt.on('keyup', btnV);
+            _lnk.on('input', btnV);
+            _lnk_txt.on('input', btnV);
             btnV();
         },
 
@@ -880,66 +880,25 @@
         },
 
         imgHandler: function () {
-            this.selection.insertNode($('<p>####</p>'))
-            return;
             var O = this,
-                R = O.selection.getRange(),
-                isPoint = R.start === R.end,
-
-                // modal markup.
                 $c = $('<p><label for="sumo_img_url">URL</label><span><input name="sumo_img_url" id="sumo_img_url" placeholder="Image url here..." type="text"/></span></p>' +
                     '<p><label for="sumo_title">Title</label><span><input name="sumo_title" id="sumo_title" placeholder="Description for image" type="text"/></span></p>' +
-                    // '<p><span class="_lst"><label class="sumo-chbox"><input id="sumo_chkbx" name="sumo_chkbx" type="checkbox"/><span></span>New tab</label></span>' +
                     '<p><input id="sumo_submit" type="submit" value="Insert"/></p>'),
-
-                _submit = $c.find('#sumo_submit'),
                 _img_url = $c.find('#sumo_img_url'),
-                _title = $c.find('#sumo_title'),
-
-                setA = function ($a, D) {
-                    $a.attr('href', D.sumo_lnk);
-                    if (D.sumo_chkbx) {
-                        $a.attr('target', '_blank')
-                    }
-                    else {
-                        $a.removeAttr('target')
-                    }
-                },
-                btnV = function(){
-                    _submit[0].disabled = !_img_url.val();
-                };
-
-            // if already in <a> but point selection.
-            var _a = O.utils.ancestorIs(R.end, 'a')
+                _submit = $c.find('#sumo_submit');
 
             O.utils.modal($c, function (D) {
-                var an = null,   // flag to apply uniform operation on the selection.
-                    obj = O.selection.textNodes(R), // preserve the selection.
-                    $tag = $('<a>');
-
-                O.selection.eachInline(function (n) {
-                    var first = n[0],
-                        a = O.utils.ancestorIs(first, 'a');
-                    an = an == null ? a : an;
-
-                    // wrap selection.
-                    var $a = $(a);
-                    if (!an && !a) {
-                        $(n).wrapAll($tag);
-                        $a = $(n).parent();
-                        if (isPoint) {
-                            $a.text(D.sumo_lnk_txt);
-                            n = $a.contents();
-                        }
-                    }
-
-                    setA($a, D);
-                    return n;
-                }, obj);
+                var $img = $('<img>');
+                $img.attr('src', D.sumo_img_url);
+                D.sumo_title?$img.attr('alt', D.sumo_title):0;
+                O.selection.insertNode($img);
             });
 
             // validation on url, empty images are not allowed.
-            _img_url.on('keyup', btnV);
+            var btnV = function(){
+                _submit[0].disabled = !_img_url.val();
+            };
+            _img_url.on('input', btnV);
             btnV();
         },
 
@@ -1074,7 +1033,8 @@
                 n = nods[nods.length - 1],
                 end = n[n.length - 1],
                 sl = R.start === R.end; // single line selection
-            if(sl && R.so === R.eo && $(R.start).text().length === R.eo){
+            if(sl && start.nodeType === 3 /* it can be <br> tag (handle insetion in a blank <p>)*/
+                && R.so === R.eo && $(R.start).text().length === R.eo){
                 ep = 1;
             }
 
@@ -1313,20 +1273,11 @@
 
             // remove the selected nodes.
             nods.forEach(function (n) {
-                // remove parent also if empty
-                var f = function (n) {
-                    if(n[0].parentNode != o.O.editor && n[0].parentNode.childNodes.length === n.length){
-                        f([n[0].parentNode]);
-                    }
-                    else {
-                        $(n).remove();
-                    }
-                }
-                f(n);
+                o.O.utils.removeNodes(n);
             });
 
             // o.O.caret.setPos($e,0);
-            
+            o.obj().selectAllChildren($e[0]);
         }
 
     },
@@ -1637,9 +1588,13 @@
                 };
 
             // if its a single textNode.
-            // if (start === end && rng.so === rng.eo) {
             if (start === end) {
-                nodes.push([start])
+                // this is to handle the case when there is no textNode inside. push the <br> tag.
+                if(start === rStart){
+                    nodes.push(start.children)
+                } else {
+                    nodes.push([start]);
+                }
             }
             else {
                 while (rStart) {
@@ -1650,6 +1605,23 @@
             }
 
             return nodes
+        },
+
+        /*
+        * Recursively removes a node and its empty parents if any.
+        * @param {Array<Element>} n array of nodes to be removed.
+        * */
+        removeNodes: function (n) {
+            var o = this,
+                f = function (n) {
+                    if(n[0].parentNode != o.O.editor && n[0].parentNode.childNodes.length === n.length){
+                        f([n[0].parentNode]);
+                    }
+                    else {
+                        $(n).remove();
+                    }
+                };
+            f(n);
         },
 
 /*        /!*
