@@ -57,10 +57,10 @@
 .sico-color-text:before {
   content: "\6b";
 }
-.sico-indent:before {
+.sico-unindent:before {
   content: "\6c";
 }
-.sico-unindent:before {
+.sico-indent:before {
   content: "\6d";
 }
 .sico-italic:before {
