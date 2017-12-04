@@ -159,6 +159,7 @@
     box-shadow: 0 1px 8px rgba(0,0,0,.2);
     padding: 1px 0;
     display: none;
+    border-top: none;
  }
 .sumoeditor .toolbar .sumo-lst .sumo-dis{
     display: block;
@@ -188,10 +189,17 @@
 }
 
 .sumoeditor .toolbar .sumo-lst.size{width: 80px;}
-.sumoeditor .toolbar .sumo-lst.size button{font-size: inherit;padding-left: 6px;}
-.sumoeditor .toolbar .sumo-lst.size .sumo-drp button{
-    padding: 4px 6px;
-}
+.sumoeditor .toolbar .sumo-lst.size button,
+    .sumoeditor .toolbar .sumo-lst.format button{
+        font-size: inherit;
+        padding-left: 6px;
+        white-space: nowrap;
+    }
+.sumoeditor .toolbar .sumo-lst.size .sumo-drp button,
+    .sumoeditor .toolbar .sumo-lst.format .sumo-drp button {
+        padding: 4px 6px;
+    }
+.sumoeditor .toolbar .sumo-lst.format{width: 90px;}
 
 /* Editor styles */
 
@@ -201,6 +209,11 @@
     padding: 10px 20px;
     min-height: 66px;
     height: 100%;
+    white-space: pre-wrap;       /* css-3 */
+    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+    white-space: -pre-wrap;      /* Opera 4-6 */
+    white-space: -o-pre-wrap;    /* Opera 7 */
+    word-wrap: break-word;
 }
 
 .sumoeditor .editor.blank::before{
@@ -231,7 +244,7 @@
 .sumo-modal p > label{
     position: absolute;
     left: 0;
-    top: 3px;
+    top: 6px;
 }
 .sumo-modal p span{
     display: block;
