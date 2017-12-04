@@ -749,27 +749,47 @@
 
         },
 
+        /*
+        * Toggles indentation of contents. also takes care of indentation in lists.
+        * @param {number} val the value of margin to increase or decrease.
+        * */
         toggleIndent: function(val){
-            var O = this;
+            var O = this,
+                sel = O.selection.getBlocks(),
+                rng = sel.rng,
+                /*
+                * A boolean to tell if selection starts or ends on a non list node.
+                * we do not nest lists until selection is strictly inside a list(ul/ol).
+                * */
+                tb = $(sel.nodes[0]).is('li') && $(sel.nodes[sel.nodes.length - 1]).is('li');
 
-            O.selection.eachBlock(function (mE) {
-                var key = 'margin-left',
-                    margin = O.utils.getStyle(mE)[key.toUpperCase()];
-                margin = margin? parseInt(margin.substr(0, margin.length-2)):0;
+            sel.nodes.forEach(function (mE) {
                 mE = $(mE);
+
+                var key = 'margin-left',
+                    margin = O.utils.getStyle(mE[0])[key.toUpperCase()];
+                margin = margin? parseInt(margin.substr(0, margin.length-2)):0;
                 margin += val;
 
-                // if value is positive then we need to add.
+                // if value is positive then we need to indent/add ul->li.
                 if (margin > 0) {
-                    O.utils.css(mE, key, margin + 'px');
+                    if(tb && mE.is('li')){
+                        // debugger;
+                        var c = mE.contents(),
+                            li = $('<li>');
+                        mE.append(mE.parent().clone().empty().append(li));
+                        li.append(c);
+                    }
+                    else {
+                        O.utils.css(mE, key, margin + 'px');
+                    }
                 }
                 else {
                     O.utils.css(mE, key, '');
                 }
-
-                return mE[0];
             });
 
+            O.selection.setRange(rng);
         },
 
         /*
@@ -1178,8 +1198,8 @@
         *     the newly created Element if any, or the same element passed as an argument.
         * */
         eachBlock: function (modify) {
-            var sel = this.getBlocks();
-            var rng = sel.rng;
+            var sel = this.getBlocks(),
+                rng = sel.rng;
 
             $.each(sel.nodes, function (i, n) {
                 var created = modify(n);
