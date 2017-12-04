@@ -749,6 +749,29 @@
 
         },
 
+        toggleIndent: function(val){
+            var O = this;
+
+            O.selection.eachBlock(function (mE) {
+                var key = 'margin-left',
+                    margin = O.utils.getStyle(mE)[key.toUpperCase()];
+                margin = margin? parseInt(margin.substr(0, margin.length-2)):0;
+                mE = $(mE);
+                margin += val;
+
+                // if value is positive then we need to add.
+                if (margin > 0) {
+                    O.utils.css(mE, key, margin + 'px');
+                }
+                else {
+                    O.utils.css(mE, key, '');
+                }
+
+                return mE[0];
+            });
+
+        },
+
         /*
         * Handles add/removal of lists
         * @param {string('ul'| 'ol')} list the list node.
@@ -2023,17 +2046,20 @@
             }
         },
         indent: function () {
+            var O = this;
             return {
                 ico: 'indent',
                 onclick: function(){
+                    O.toggleIndent(40);
                 }
             }
         },
         unindent: function () {
+        var O = this;
             return {
                 ico: 'unindent',
                 onclick: function(){
-
+                    O.toggleIndent(-40);
                 }
             }
         },
