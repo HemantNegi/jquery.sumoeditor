@@ -222,6 +222,7 @@
     font-style: italic;
     pointer-events: none;
     position: absolute;
+    z-index: -1;
 }
 
 /* modals */
