@@ -38,7 +38,8 @@
         defaults: {
             placeholder: 'Start writing here...',
             toolbar: [
-                [{'size': [{'Small': '10px'}, {'Normal': false}, {'Large':'22px'}, {'Huge': '32px'}]}],
+                [{'size': [{'Small': '10px'}, {'Default': false}, {'Large':'22px'}, {'Huge': '32px'}]}],
+                [{'format': [{'Heading 1': 'h1'}, {'Heading 2': 'h2'}, {'Heading 3': 'h3'}, {'Normal': false}, {'Pre': 'pre'}]}],
                 ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
                 ['quote', 'code'],
 
@@ -62,13 +63,18 @@
         /*
         * A list of elements which we want to consider block elements (wtf :p)
         * */
-        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, CODE:1, H1:1, H2:1, H3:1, H4:1, UL:1, OL:1},
+        BLOCK_ELEMENTS: {P:1, LI:1, BLOCKQUOTE:1, CODE:1, H1:1, H2:1, H3:1, H4:1, H5:1, UL:1, OL:1, PRE:1},
 
         /* An object to keep reference to created buttons */
         REG_BUTTONS: {},
 
         /* A list of currently highlighted buttons on the toolbar.*/
         HIGH_BUTTONS: [],
+
+        /*
+        * The default tag that will be used to create paragraphs (Not tested yet).
+        */
+        P_TAG: 'p',
 
         /*
         * initializes settings and module instance.
@@ -131,7 +137,7 @@
                     if(key in O.buttons){
                         var def = O.buttons[key].call(O, val);
                         def.key = key;
-                        if(def.typ === 'style'){
+                        if(LST){
                             def.setMnu = function (d) {
                                 if(d){ // reset to default value
                                     LST.$dis.empty().append(LST.caption.btn.clone());
@@ -444,7 +450,7 @@
                 for (var i = 0; i < O.bkArr.length; i++) {
                     if ($n.is(O.bkArr[i])) {
                         pd=1;
-                        var ne = O.utils.replaceTag($n, 'p');
+                        var ne = O.utils.replaceTag($n, O.P_TAG);
                         O.caret.setPos(ne, 0);
                     }
                 }
@@ -471,10 +477,10 @@
             // Case: Exit from a block (i.e stop recreation on enter).
             // Exception: when, $curBElm is immediate children of editor and is 'p'.
             if($curBElm.text() === '' &&
-                !($curBElm.is('p') && $curBElm.parent().is(O.editor))){
+                !($curBElm.is(O.P_TAG) && $curBElm.parent().is(O.editor))){
 
                 // Case: when there is an empty p inside a li. we need to create a new li.
-                if($curBElm.is('p') && $curBElm.parent().is('li')) {
+                if($curBElm.is(O.P_TAG) && $curBElm.parent().is('li')) {
                     var li_ = $curBElm.parent();
                     $curBElm.remove();
                     $curElm = $curBElm = li_;
@@ -483,7 +489,7 @@
 
                 } else {
                     // Case: Stop recreation of elements, this time we will skip enter press.
-                    var n = O.utils.replaceTag($curBElm, 'p');
+                    var n = O.utils.replaceTag($curBElm, O.P_TAG);
                     O.caret.setPos(n, 0);
                     return !0;
                 }
@@ -599,13 +605,16 @@
             // the state of selection.
             var O = this, r = null;
 
+            // set default value if not supplied.
+            block = block || O.P_TAG;
+
             var nodes = O.selection.eachBlock(function (mE) {
                 mE = $(mE);
                 r = r == null ? mE.is(block) : r;
                 var elem;
                 if (r) {
                     // begin removing the block.
-                    elem = O.utils.replaceTag(mE, 'p');
+                    elem = O.utils.replaceTag(mE, O.P_TAG);
                     O.utils.setBlank(elem);
                 }
                 else {
@@ -2088,6 +2097,17 @@
                 onclick: function() {
                     O.toggleInline('span', style);
                 }
+            }
+        },
+        format: function (parm) {
+            var key, val;
+            for (key in parm) {val = parm[key]}
+
+            return {
+                typ: 'block',
+                tag: val,
+                txt: key,
+                mnu: !val,
             }
         },
 
