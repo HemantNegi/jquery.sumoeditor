@@ -1065,7 +1065,7 @@
                 n = nods[nods.length - 1],
                 end = n[n.length - 1],
                 sl = R.start === R.end; // single line selection
-            if(sl && start.nodeType === 3 /* it can be <br> tag (handle insetion in a blank <p>)*/
+            if(sl && start.nodeType === 3 /* it can be <br> tag (handle insertion in a blank <p>)*/
                 && R.so === R.eo && $(R.start).text().length === R.eo){
                 ep = 1;
             }
@@ -1261,18 +1261,24 @@
         getCoords: function () {
             var o = this,
                 r = o.getRange().r,
-                rect,
                 ed = o.O.$wrapper.offset(),
-                el = $('<span>');
 
+                rect,
+                el = $('<span>'),
+                sc = r.startContainer;
+                // $(r.startContainer.childNodes[0]).offset()
             if (r.getBoundingClientRect){
                 rect = r.getBoundingClientRect();
-                rect = {
+
+                // handle case when getBoundingClientRect returns invalid values for empty lines (assuming there
+                // will be a <br> tag present in every empty line.)
+                rect = (rect.top === 0 && sc.childNodes[0]) ? $(sc.childNodes[0]).offset(): {
                     top: rect.top + pageYOffset,
                     left: rect.left + pageXOffset
                 }
             }
             else {
+                /*TODO: remove this fallback and set to center using css. */
                 // fallback to element creation.
                 if(r.startOffset) {
                     el.append('\u200b');
@@ -1285,7 +1291,7 @@
                     p.normalize();
                 }
                 else{ // avoid node change on corners.
-                    el = r.startContainer.previousSibling || r.startContainer.parentNode;
+                    el = sc.childNodes[0] || sc.previousSibling || sc.parentNode;
                     rect = $(el).offset();
                 }
             }
@@ -1851,7 +1857,7 @@
             }
 
             // also check if there is no space on top, its better to display modal at the bottom.
-            T = (T + h > eh && tp > 1)? tp: T + 22;
+            T = (T + h > eh && tp > 1)? tp: T + 22; // 22 is spacing from text
 
             $m.css({left: L, top: T});
         },
