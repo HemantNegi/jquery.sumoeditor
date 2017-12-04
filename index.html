@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Easy editor - Insert image url example</title>
+
+    <!-- easy editor stylesheet -->
+    <link rel="stylesheet" href="demo/style.css">
+    <link rel="stylesheet" href="src/easyeditor.css">
+    <style type="text/css">
+        #editor {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1><a style="text-decoration: none;" href="https://github.com/HemantNegi/jquery.sumoeditor">Sumo editor</a> <span>(Pre-release version #ddaaae2)</span></h1>
+
+        <div>
+        <textarea style="margin-top:50px;" id="editor" name="name-attr" placeholder="Type here ... "></textarea>
+        </div>
+
+        <p><br></p>
+        <p>Report new issues <a href="https://github.com/HemantNegi/jquery.sumoeditor/issues/new">here.</a></p>
+
+        <script src="demo/jquery-1.10.2.min.js"></script>
+        <script src="src/jquery.sumoeditor.js"></script>
+
+        <script>
+            var a = $('#editor').sumoeditor();
+        </script>
+    </div>
+
+</body>
+</html>
