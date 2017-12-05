@@ -763,8 +763,8 @@
                 * */
                 tb = $(sel.nodes[0]).is('li') && $(sel.nodes[sel.nodes.length - 1]).is('li');
 
-                // indent on first list item should add margin to selection.
-                if (tb) tb = $(sel.nodes[0]).is('li') && sel.nodes[0].previousSibling;
+            // indent on first list item should add margin to selection.
+            if (tb) tb = $(sel.nodes[0]).is('li') && sel.nodes[0].previousSibling;
 
             sel.nodes.forEach(function (mE) {
                 mE = $(mE);
@@ -1037,8 +1037,38 @@
                 nodes = [],
                 stNode = o.O.utils.getRootNode(start),
                 enNode = o.O.utils.getRootNode(end),
+
+                arr = [];
+            /*
+            * recursively collect all block nodes after start, until end is not found.
+            * @param {Element} n the starting node.
+            * @return {Boolean} whether end is found or not.
+            */
+            var startF = function(n){
+                arr.push(n);
+                if(n === stNode) return 0;
+                if(n === end) return 1;
+
+//                 next = n.nextSibling;
+                
+//                 if(n.parentNode.nextSibling || n.parentNode.parentNode.nextSibling){
+
+//                 }
+                return startF(n.nextSibling || n.parentNode.nextSibling || n.parentNode.parentNode.nextSibling);
+            }
+
+            // if end is not found.
+            if(!startF(start)){
+
+            }
+
+            return {
+                nodes: arr,
+                rng: rng
+            };
+            return;
                 // recursively gets all the block child nodes of given node.
-                gbe = function(nod){
+            var gbe = function(nod){
                     var be = [], m = !1, C=nod.childNodes;
                     for(var i=0; i<C.length; i++){
                         var n = C[i];
