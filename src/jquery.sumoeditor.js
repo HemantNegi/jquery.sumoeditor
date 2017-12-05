@@ -778,10 +778,7 @@
                 if (margin > 0) {
                     if(tb && mE.is('li')){
                         // debugger;
-                        var c = mE.contents(),
-                            li = $('<li>');
-                        mE.prev().append(mE.parent().clone().empty().append(li));
-                        li.append(c);
+                        mE.prev().append(mE.parent().clone().empty().append(mE));
                     }
                     else {
                         O.utils.css(mE, key, margin + 'px');
@@ -1042,13 +1039,13 @@
                         if (n.tagName && o.O.BLOCK_ELEMENTS[n.tagName.toUpperCase()]){
                             be.push(n);
                         }
-                        else{
-                            m = !0;
-                            break;
-                        }
+//                         else{
+//                             m = !0;
+//                             break;
+//                         }
                     }
 
-                    if(m || !C.length){
+                    if(!be.length){
                         return [nod]
                     }
                     else{
