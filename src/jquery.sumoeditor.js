@@ -763,6 +763,9 @@
                 * */
                 tb = $(sel.nodes[0]).is('li') && $(sel.nodes[sel.nodes.length - 1]).is('li');
 
+                // indent on first list item should add margin to selection.
+                if (tb) tb = $(sel.nodes[0]).is('li') && sel.nodes[0].previousSibling;
+
             sel.nodes.forEach(function (mE) {
                 mE = $(mE);
 
@@ -777,7 +780,7 @@
                         // debugger;
                         var c = mE.contents(),
                             li = $('<li>');
-                        mE.append(mE.parent().clone().empty().append(li));
+                        mE.prev().append(mE.parent().clone().empty().append(li));
                         li.append(c);
                     }
                     else {
