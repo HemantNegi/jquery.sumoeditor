@@ -774,11 +774,18 @@
                 margin = margin? parseInt(margin.substr(0, margin.length-2)):0;
                 margin += val;
 
-                // if value is positive then we need to indent/add ul->li.
                 if (margin > 0) {
                     if(tb && mE.is('li')){
-                        // debugger;
-                        mE.prev().append(mE.parent().clone().empty().append(mE));
+                        if(val>0){
+                            // indent list.
+                            var l = mE.prev().children().last(),
+                                lst = (l.is('ul') || l.is('ol'))? l:0;
+                            lst = lst || mE.parent().clone().empty();
+                            mE.prev().append(lst.append(mE));
+                        }
+                        else{
+                            // unindent list.
+                        }
                     }
                     else {
                         O.utils.css(mE, key, margin + 'px');
