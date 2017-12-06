@@ -1027,6 +1027,7 @@
 
         /*
         * Gets the block nodes in the selection.
+        * these nodes will be more close to the content.
         * @returns {{nodes: Array.<Element>, range: Object.<Range Object>}}
         * */
         getBlocks: function () {
@@ -1034,130 +1035,86 @@
                 rng = o.getRange(),
                 start = o.O.utils.getBlockNode(rng.start),
                 end = o.O.utils.getBlockNode(rng.end),
-                nodes = [],
                 stNode = o.O.utils.getRootNode(start),
                 enNode = o.O.utils.getRootNode(end),
 
-                arr = [],
-                eArr = [];
-            /*
-            * recursively collect all block nodes after start, until end is not found.
-            * @param {Element} n the starting node.
-            * @return {Boolean} whether end is found or not.
-            */
-            var startF = function(n){
-                if(!n) return 0;
-                arr.push(n);
-                if(n === end) return 1;
-                if(n === stNode) return 0;
+                // checks if given node is block or not.
+                isB = function (n) {
+                    return n.tagName && o.O.BLOCK_ELEMENTS[n.tagName.toUpperCase()]
+                },
 
-                if(n.nextSibling){
-                    n = n.nextSibling;
-                }
-                else{
-                    while(!n.nextSibling ||
-                            !(n.nextSibling.tagName && o.O.BLOCK_ELEMENTS[n.nextSibling.tagName.toUpperCase()])){
+                srr = [],
+                /*
+                * recursively collect all block nodes after start, until end is not found.
+                * @param {Element} n the starting node.
+                * @return {Boolean} whether end is found or not.
+                */
+                startF = function(n){
+                    if(isB(n)) {
+                        srr.push(n);
+                    } else{
+                        // if next node is not a block node then take the parent directly.
+                        srr = [];
+                        return startF(n.parentNode);
+                    }
+                    if(n === end) return 1;
+                    if(n === stNode) return 0;
+
+                    while(!n.nextSibling){
                         n = n.parentNode;
                         if(n === end) return 1;
                         if(n === stNode) return 0;
                     }
                     n = n.nextSibling;
-                }
-                return startF(n);
-            }
 
-            var endF = function(n){
-                if(!n) return 0;
-                if(n.tagName && o.O.BLOCK_ELEMENTS[n.tagName.toUpperCase()]){
-                    eArr.push(n);
-                } else{
-                    n = n.parentNode;
-                    eArr = [n]
-                }
-                if(n === start) return 1;
-                if(n === enNode) return 0;
+                    return startF(n);
+                },
 
-                if(n.previousSibling){
-                    n = n.previousSibling;
-                }
-                else{
+                err = [],
+                endF = function(n){
+                    if(isB(n)){
+                        err.push(n);
+                    } else{
+                        err = [];
+                        return endF(n.parentNode);
+                    }
+                    if(n === start) return 1;
+                    if(n === enNode) return 0;
+
                     while(!n.previousSibling){
                         n = n.parentNode;
                         if(n === start) return 1;
                         if(n === enNode) return 0;
                     }
                     n = n.previousSibling;
-                }
-                return endF(n);
-            }
 
-            //debugger;
+                    return endF(n);
+                };
 
             // if end is not found.
             if(!startF(start)){
-
                 // if start was found while traversing from end.
                 if(endF(end)){
-                    arr = eArr.reverse();
+                    srr = err.reverse();
                 }
                 else{
                     var piv = stNode.nextSibling;
                     while (piv != enNode) {
                         if(['OL', 'UL'].indexOf(piv.tagName.toUpperCase())>=0){
-                            arr = arr.concat(piv.children);
+                            srr = srr.concat(piv.children);
                         }
                         else{
-                            arr.push(piv);
+                            srr.push(piv);
                         }
                         piv = piv.nextSibling;
                     }
-                    arr = arr.concat(eArr)
+                    srr = srr.concat(err)
                 }
 
             }
 
             return {
-                nodes: arr,
-                rng: rng
-            };
-            return;
-                // recursively gets all the block child nodes of given node.
-            var gbe = function(nod){
-                    var be = [], m = !1, C=nod.childNodes;
-                    for(var i=0; i<C.length; i++){
-                        var n = C[i];
-                        // if any of the child nodes is not a block node then break.
-                        if (n.tagName && o.O.BLOCK_ELEMENTS[n.tagName.toUpperCase()]){
-                            be.push(n);
-                        }
-//                         else{
-//                             m = !0;
-//                             break;
-//                         }
-                    }
-
-                    if(!be.length){
-                        return [nod]
-                    }
-                    else{
-                        var arr = [];
-                        for(var i=0; i<be.length; i++){
-                            arr = arr.concat(gbe(be[i]));
-                        }
-                        return arr;
-                    }
-                };
-
-            while (stNode) {
-                nodes = nodes.concat(gbe(stNode));
-                if (stNode === enNode) break;
-                stNode = stNode.nextSibling;
-            }
-
-            var off = nodes.indexOf(start),
-                lim = nodes.indexOf(end) - off + 1;
-            return {
-                nodes: nodes.splice(off, lim),
+                nodes: srr,
                 rng: rng
             };
         },
