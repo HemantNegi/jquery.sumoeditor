@@ -1038,27 +1038,81 @@
                 stNode = o.O.utils.getRootNode(start),
                 enNode = o.O.utils.getRootNode(end),
 
-                arr = [];
+                arr = [],
+                eArr = [];
             /*
             * recursively collect all block nodes after start, until end is not found.
             * @param {Element} n the starting node.
             * @return {Boolean} whether end is found or not.
             */
             var startF = function(n){
+                if(!n) return 0;
                 arr.push(n);
-                if(n === stNode) return 0;
                 if(n === end) return 1;
+                if(n === stNode) return 0;
 
-//                 next = n.nextSibling;
-                
-//                 if(n.parentNode.nextSibling || n.parentNode.parentNode.nextSibling){
-
-//                 }
-                return startF(n.nextSibling || n.parentNode.nextSibling || n.parentNode.parentNode.nextSibling);
+                if(n.nextSibling){
+                    n = n.nextSibling;
+                }
+                else{
+                    while(!n.nextSibling ||
+                            !(n.nextSibling.tagName && o.O.BLOCK_ELEMENTS[n.nextSibling.tagName.toUpperCase()])){
+                        n = n.parentNode;
+                        if(n === end) return 1;
+                        if(n === stNode) return 0;
+                    }
+                    n = n.nextSibling;
+                }
+                return startF(n);
             }
+
+            var endF = function(n){
+                if(!n) return 0;
+                if(n.tagName && o.O.BLOCK_ELEMENTS[n.tagName.toUpperCase()]){
+                    eArr.push(n);
+                } else{
+                    n = n.parentNode;
+                    eArr = [n]
+                }
+                if(n === start) return 1;
+                if(n === enNode) return 0;
+
+                if(n.previousSibling){
+                    n = n.previousSibling;
+                }
+                else{
+                    while(!n.previousSibling){
+                        n = n.parentNode;
+                        if(n === start) return 1;
+                        if(n === enNode) return 0;
+                    }
+                    n = n.previousSibling;
+                }
+                return endF(n);
+            }
+
+            //debugger;
 
             // if end is not found.
             if(!startF(start)){
+
+                // if start was found while traversing from end.
+                if(endF(end)){
+                    arr = eArr.reverse();
+                }
+                else{
+                    var piv = stNode.nextSibling;
+                    while (piv != enNode) {
+                        if(['OL', 'UL'].indexOf(piv.tagName.toUpperCase())>=0){
+                            arr = arr.concat(piv.children);
+                        }
+                        else{
+                            arr.push(piv);
+                        }
+                        piv = piv.nextSibling;
+                    }
+                    arr = arr.concat(eArr)
+                }
 
             }
 
