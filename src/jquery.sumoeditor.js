@@ -76,6 +76,9 @@
         */
         P_TAG: 'p',
 
+        /* Array holds the tag names of elements to be removed forcefully on backspace.*/
+        bkArr: ['li'],
+
         /*
         * initializes settings and module instance.
         * */
@@ -83,9 +86,6 @@
             // Introduce defaults that can be extended either
             // globally or using an object literal.
             this.config = $.extend(this.defaults, this.opts);
-
-            // Array holds the tag names of elements to be removed forcefully on backspace.
-            this.bkArr = [];
 
             // initialize modules.
             this.history.O = this.selection.O = this.caret.O = this.utils.O = this;
@@ -255,8 +255,8 @@
         createButton: function (def) {
             var O = this,
                 btn = $('<button>');
-                if(def.ico)btn.addClass('sico-' + def.ico);
-                if(def.txt)btn.text(def.txt);
+            if(def.ico)btn.addClass('sico-' + def.ico);
+            if(def.txt)btn.text(def.txt);
 
             if(def.rmOnBkSpace) this.bkArr.push(def.tag);
 
@@ -430,9 +430,9 @@
                 $n = $(blk.node),
                 pos = blk.pos,
                 pd = !1; // flag to e.preventDefault();
-
             // handle list concatenation when pressing backspace in between two lists.
             if($n.text() === '' && pos === 0){
+            // if(pos === 0){
                 if($n.is('li')){
                     // CASE: backspace pressed at the beginning of list item.
                     var n = O.utils.unList($n);
@@ -542,12 +542,24 @@
                 fPivot = 0;
             });
 
-            // it will be good to remove at last.
+            // it will be good to remove obsolete nodes at last.
             D?D.remove():0;
             $curBElm.after($n);
 
             O.utils.setBlank($curBElm);
             O.utils.setBlank($n);
+
+            //Case: if there is a similar list after this li, then merge it.
+            if($n.is('li') && $n.is(':last-child')){
+                var x, $l = $n.parent().next();
+                if($l.is('ol') || $l.is('ul')){
+                    // creating a temp node for sake of calling joinList.
+                    x = $('<' + O.P_TAG +'>');
+                    $l.before(x);
+                    O.utils.joinList(x);
+                }
+            }
+
             O.caret.setPos($n, 0); 
 
             return !0;
@@ -608,7 +620,7 @@
             // set default value if not supplied.
             block = block || O.P_TAG;
 
-            var nodes = O.selection.eachBlock(function (mE) {
+            O.selection.eachBlock(function (mE) {
                 mE = $(mE);
                 r = r == null ? mE.is(block) : r;
                 var elem;
@@ -766,33 +778,54 @@
             // indent on first list item should add margin to selection.
             if (tb) tb = $(sel.nodes[0]).is('li') && sel.nodes[0].previousSibling;
 
-            sel.nodes.forEach(function (mE) {
-                mE = $(mE);
-
-                var key = 'margin-left',
-                    margin = O.utils.getStyle(mE[0])[key.toUpperCase()];
+            sel.nodes.forEach(function (E) {
+                var $E = $(E),
+                    key = 'margin-left',
+                    margin = O.utils.getStyle($E[0])[key.toUpperCase()];
                 margin = margin? parseInt(margin.substr(0, margin.length-2)):0;
                 margin += val;
 
-                if (margin > 0) {
-                    if(tb && mE.is('li')){
-                        if(val>0){
-                            // indent list.
-                            var l = mE.prev().children().last(),
-                                lst = (l.is('ul') || l.is('ol'))? l:0;
-                            lst = lst || mE.parent().clone().empty();
-                            mE.prev().append(lst.append(mE));
-                        }
-                        else{
-                            // unindent list.
-                        }
+                if (margin >= 0) {
+                    if(tb && $E.is('li')){
+                        // indent list. make this li a sub-list of previous li.
+                        var l = $E.prev().children().last(),
+                            lst = (l.is('ul') || l.is('ol'))? l:0;
+                        lst = lst || $E.parent().clone().empty();
+                        $E.prev().append(lst.append($E));
                     }
                     else {
-                        O.utils.css(mE, key, margin + 'px');
+                        O.utils.css($E, key, margin + 'px');
                     }
                 }
                 else {
-                    O.utils.css(mE, key, '');
+                    if($E.is('li')){
+                        // unindent list if its nested in a li
+                        var $l = $E.parent(), // ul or ol
+                            el = $l.parent(),
+                            fc = function(){
+                                el.after($E);
+                                $E.append($l);
+                            };
+
+                        if(el.is('li')){
+                            if($E.is(':first-child')){
+                                fc()
+                            }
+                            else if($E.is(':last-child')){
+                                el.after($E);
+                            }
+                            else{
+                                // create a new list for previous $li's before l
+                                $l.before($l.clone().empty().append($E.prevAll().get().reverse()));
+                                // now run the logic for first-node
+                                fc()
+                            }
+                            $l.children().length?0:$l.remove();
+                        }
+                    }
+                    else{
+                        O.utils.css($E, key, '');
+                    }
                 }
             });
 
@@ -806,7 +839,7 @@
         listHandler: function (lst){
             var r = null, O = this;
 
-            var nodes = O.selection.eachBlock(function(el){
+            O.selection.eachBlock(function(el){
 
                 // el is the closest block element.
                 // first try to pick closest li if exists else take el
@@ -1553,7 +1586,7 @@
         * Removes given list item from list and put its content in an appropriate container.
         * @param {jQuery Element} li the jQuery instance of list item.
         * @param {string} t new tag to move content to.
-        * @returns {jQuery Element} The newly created DOM object.
+        * @returns {jQuery Element} The newly created DOM Element.
         * */
         unList: function ($li) {
 
