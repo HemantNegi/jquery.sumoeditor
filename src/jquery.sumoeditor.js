@@ -446,9 +446,9 @@
             }
 
             // Case: when back space is pressed on a p with text in between two lists.
-            if(pos === 0){
-               var x = O.utils.joinList($n)
-            }
+            // if(pos === 0){
+            //    var x = O.utils.joinList($n)
+            // }
 
             // handle removal of elements for which rmOnBkSpace is set.
             if (pos == 0) {
