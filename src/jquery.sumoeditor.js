@@ -430,25 +430,22 @@
                 $n = $(blk.node),
                 pos = blk.pos,
                 pd = !1; // flag to e.preventDefault();
+
             // handle list concatenation when pressing backspace in between two lists.
-            if($n.text() === '' && pos === 0){
-            // if(pos === 0){
+            if(pos === 0){
+            /*  // if bkArr contains li then no need for this.
                 if($n.is('li')){
                     // CASE: backspace pressed at the beginning of list item.
                     var n = O.utils.unList($n);
                     O.caret.setPos(n, 0);
                     pd = 1;
                 }
-                else if (O.utils.joinList($n)){
+                else */
+                if (O.utils.joinList($n)){
                     // CASE: Join lists on removal of blank line between two lists.
                     pd = 1;
                 }
             }
-
-            // Case: when back space is pressed on a p with text in between two lists.
-            // if(pos === 0){
-            //    var x = O.utils.joinList($n)
-            // }
 
             // handle removal of elements for which rmOnBkSpace is set.
             if (pos == 0) {
@@ -1632,13 +1629,21 @@
                     ($n.prev().is('ul') && $n.next().is('ul'))) {
                 var $prv = $n.prev(),
                     $nxt = $n.next(),
-                    $li = $prv.children().last();
+                    $li = $prv.children().last(),
+                    p = $li.text().length;
 
                 $prv.append($nxt.children());
                 $nxt.remove();
+
+                // move the content also if any.
+                if($n.text()){
+                    // remove the the last <br> if any.
+                    if($li.children().length === 1)$li.children('br').remove();
+                    $li.append($n.contents());
+                }
                 $n.remove();
 
-                this.O.caret.setPos($li, $li.text().length);
+                this.O.caret.setPos($li, p);
                 return !0;
             }
             return !1;
