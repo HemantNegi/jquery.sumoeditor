@@ -76,6 +76,9 @@
         */
         P_TAG: 'p',
 
+        /* Array holds the tag names of elements to be removed forcefully on backspace.*/
+        bkArr: ['li'],
+
         /*
         * initializes settings and module instance.
         * */
@@ -83,9 +86,6 @@
             // Introduce defaults that can be extended either
             // globally or using an object literal.
             this.config = $.extend(this.defaults, this.opts);
-
-            // Array holds the tag names of elements to be removed forcefully on backspace.
-            this.bkArr = [];
 
             // initialize modules.
             this.history.O = this.selection.O = this.caret.O = this.utils.O = this;
@@ -255,8 +255,8 @@
         createButton: function (def) {
             var O = this,
                 btn = $('<button>');
-                if(def.ico)btn.addClass('sico-' + def.ico);
-                if(def.txt)btn.text(def.txt);
+            if(def.ico)btn.addClass('sico-' + def.ico);
+            if(def.txt)btn.text(def.txt);
 
             if(def.rmOnBkSpace) this.bkArr.push(def.tag);
 
@@ -432,14 +432,16 @@
                 pd = !1; // flag to e.preventDefault();
 
             // handle list concatenation when pressing backspace in between two lists.
-            if($n.text() === '' && pos === 0){
+            if(pos === 0){
+            /*  // if bkArr contains li then no need for this.
                 if($n.is('li')){
                     // CASE: backspace pressed at the beginning of list item.
                     var n = O.utils.unList($n);
                     O.caret.setPos(n, 0);
                     pd = 1;
                 }
-                else if (O.utils.joinList($n)){
+                else */
+                if (O.utils.joinList($n)){
                     // CASE: Join lists on removal of blank line between two lists.
                     pd = 1;
                 }
@@ -542,12 +544,24 @@
                 fPivot = 0;
             });
 
-            // it will be good to remove at last.
+            // it will be good to remove obsolete nodes at last.
             D?D.remove():0;
             $curBElm.after($n);
 
             O.utils.setBlank($curBElm);
             O.utils.setBlank($n);
+
+            //Case: if there is a similar list after this li, then merge it.
+            if($n.is('li') && $n.is(':last-child')){
+                var x, $l = $n.parent().next();
+                if($l.is('ol') || $l.is('ul')){
+                    // creating a temp node for sake of calling joinList.
+                    x = $('<' + O.P_TAG +'>');
+                    $l.before(x);
+                    O.utils.joinList(x);
+                }
+            }
+
             O.caret.setPos($n, 0); 
 
             return !0;
@@ -608,7 +622,7 @@
             // set default value if not supplied.
             block = block || O.P_TAG;
 
-            var nodes = O.selection.eachBlock(function (mE) {
+            O.selection.eachBlock(function (mE) {
                 mE = $(mE);
                 r = r == null ? mE.is(block) : r;
                 var elem;
@@ -749,27 +763,75 @@
 
         },
 
+        /*
+        * Toggles indentation of contents. also takes care of indentation in lists.
+        * @param {number} val the value of margin to increase or decrease.
+        * */
         toggleIndent: function(val){
-            var O = this;
+            var O = this,
+                sel = O.selection.getBlocks(),
+                rng = sel.rng,
+                /*
+                * A boolean to tell if selection starts or ends on a non list node.
+                * we do not nest lists until selection is strictly inside a list(ul/ol).
+                * */
+                tb = $(sel.nodes[0]).is('li') && $(sel.nodes[sel.nodes.length - 1]).is('li');
 
-            O.selection.eachBlock(function (mE) {
-                var key = 'margin-left',
-                    margin = O.utils.getStyle(mE)[key.toUpperCase()];
+            // indent on first list item should add margin to selection.
+            if (tb) tb = $(sel.nodes[0]).is('li') && sel.nodes[0].previousSibling;
+
+            sel.nodes.forEach(function (E) {
+                var $E = $(E),
+                    key = 'margin-left',
+                    margin = O.utils.getStyle($E[0])[key.toUpperCase()];
                 margin = margin? parseInt(margin.substr(0, margin.length-2)):0;
-                mE = $(mE);
                 margin += val;
 
-                // if value is positive then we need to add.
-                if (margin > 0) {
-                    O.utils.css(mE, key, margin + 'px');
+                if (margin >= 0) {
+                    if(tb && $E.is('li')){
+                        // indent list. make this li a sub-list of previous li.
+                        var l = $E.prev().children().last(),
+                            lst = (l.is('ul') || l.is('ol'))? l:0;
+                        lst = lst || $E.parent().clone().empty();
+                        $E.prev().append(lst.append($E));
+                    }
+                    else {
+                        O.utils.css($E, key, margin + 'px');
+                    }
                 }
                 else {
-                    O.utils.css(mE, key, '');
-                }
+                    if($E.is('li')){
+                        // unindent list if its nested in a li
+                        var $l = $E.parent(), // ul or ol
+                            el = $l.parent(),
+                            fc = function(){
+                                el.after($E);
+                                $E.append($l);
+                            };
 
-                return mE[0];
+                        if(el.is('li')){
+                            if($E.is(':first-child')){
+                                fc()
+                            }
+                            else if($E.is(':last-child')){
+                                el.after($E);
+                            }
+                            else{
+                                // create a new list for previous $li's before l
+                                $l.before($l.clone().empty().append($E.prevAll().get().reverse()));
+                                // now run the logic for first-node
+                                fc()
+                            }
+                            $l.children().length?0:$l.remove();
+                        }
+                    }
+                    else{
+                        O.utils.css($E, key, '');
+                    }
+                }
             });
 
+            O.selection.setRange(rng);
         },
 
         /*
@@ -779,7 +841,7 @@
         listHandler: function (lst){
             var r = null, O = this;
 
-            var nodes = O.selection.eachBlock(function(el){
+            O.selection.eachBlock(function(el){
 
                 // el is the closest block element.
                 // first try to pick closest li if exists else take el
@@ -1000,6 +1062,7 @@
 
         /*
         * Gets the block nodes in the selection.
+        * these nodes will be more close to the content.
         * @returns {{nodes: Array.<Element>, range: Object.<Range Object>}}
         * */
         getBlocks: function () {
@@ -1007,46 +1070,86 @@
                 rng = o.getRange(),
                 start = o.O.utils.getBlockNode(rng.start),
                 end = o.O.utils.getBlockNode(rng.end),
-                nodes = [],
                 stNode = o.O.utils.getRootNode(start),
                 enNode = o.O.utils.getRootNode(end),
-                // recursively gets all the block child nodes of given node.
-                gbe = function(nod){
-                    var be = [], m = !1, C=nod.childNodes;
-                    for(var i=0; i<C.length; i++){
-                        var n = C[i];
-                        // if any of the child nodes is not a block node then break.
-                        if (n.tagName && o.O.BLOCK_ELEMENTS[n.tagName.toUpperCase()]){
-                            be.push(n);
-                        }
-                        else{
-                            m = !0;
-                            break;
-                        }
-                    }
 
-                    if(m || !C.length){
-                        return [nod]
+                // checks if given node is block or not.
+                isB = function (n) {
+                    return n.tagName && o.O.BLOCK_ELEMENTS[n.tagName.toUpperCase()]
+                },
+
+                srr = [],
+                /*
+                * recursively collect all block nodes after start, until end is not found.
+                * @param {Element} n the starting node.
+                * @return {Boolean} whether end is found or not.
+                */
+                startF = function(n){
+                    if(isB(n)) {
+                        srr.push(n);
+                    } else{
+                        // if next node is not a block node then take the parent directly.
+                        srr = [];
+                        return startF(n.parentNode);
                     }
-                    else{
-                        var arr = [];
-                        for(var i=0; i<be.length; i++){
-                            arr = arr.concat(gbe(be[i]));
-                        }
-                        return arr;
+                    if(n === end) return 1;
+                    if(n === stNode) return 0;
+
+                    while(!n.nextSibling){
+                        n = n.parentNode;
+                        if(n === end) return 1;
+                        if(n === stNode) return 0;
                     }
+                    n = n.nextSibling;
+
+                    return startF(n);
+                },
+
+                err = [],
+                endF = function(n){
+                    if(isB(n)){
+                        err.push(n);
+                    } else{
+                        err = [];
+                        return endF(n.parentNode);
+                    }
+                    if(n === start) return 1;
+                    if(n === enNode) return 0;
+
+                    while(!n.previousSibling){
+                        n = n.parentNode;
+                        if(n === start) return 1;
+                        if(n === enNode) return 0;
+                    }
+                    n = n.previousSibling;
+
+                    return endF(n);
                 };
 
-            while (stNode) {
-                nodes = nodes.concat(gbe(stNode));
-                if (stNode === enNode) break;
-                stNode = stNode.nextSibling;
+            // if end is not found.
+            if(!startF(start)){
+                // if start was found while traversing from end.
+                if(endF(end)){
+                    srr = err.reverse();
+                }
+                else{
+                    var piv = stNode.nextSibling;
+                    while (piv != enNode) {
+                        if(['OL', 'UL'].indexOf(piv.tagName.toUpperCase())>=0){
+                            srr = srr.concat(piv.children);
+                        }
+                        else{
+                            srr.push(piv);
+                        }
+                        piv = piv.nextSibling;
+                    }
+                    srr = srr.concat(err)
+                }
+
             }
 
-            var off = nodes.indexOf(start),
-                lim = nodes.indexOf(end) - off + 1;
             return {
-                nodes: nodes.splice(off, lim),
+                nodes: srr,
                 rng: rng
             };
         },
@@ -1065,7 +1168,7 @@
                 n = nods[nods.length - 1],
                 end = n[n.length - 1],
                 sl = R.start === R.end; // single line selection
-            if(sl && start.nodeType === 3 /* it can be <br> tag (handle insetion in a blank <p>)*/
+            if(sl && start.nodeType === 3 /* it can be <br> tag (handle insertion in a blank <p>)*/
                 && R.so === R.eo && $(R.start).text().length === R.eo){
                 ep = 1;
             }
@@ -1178,8 +1281,8 @@
         *     the newly created Element if any, or the same element passed as an argument.
         * */
         eachBlock: function (modify) {
-            var sel = this.getBlocks();
-            var rng = sel.rng;
+            var sel = this.getBlocks(),
+                rng = sel.rng;
 
             $.each(sel.nodes, function (i, n) {
                 var created = modify(n);
@@ -1261,18 +1364,24 @@
         getCoords: function () {
             var o = this,
                 r = o.getRange().r,
-                rect,
                 ed = o.O.$wrapper.offset(),
-                el = $('<span>');
 
+                rect,
+                el = $('<span>'),
+                sc = r.startContainer;
+                // $(r.startContainer.childNodes[0]).offset()
             if (r.getBoundingClientRect){
                 rect = r.getBoundingClientRect();
-                rect = {
+
+                // handle case when getBoundingClientRect returns invalid values for empty lines (assuming there
+                // will be a <br> tag present in every empty line.)
+                rect = (rect.top === 0 && sc.childNodes[0]) ? $(sc.childNodes[0]).offset(): {
                     top: rect.top + pageYOffset,
                     left: rect.left + pageXOffset
                 }
             }
             else {
+                /*TODO: remove this fallback and set to center using css. */
                 // fallback to element creation.
                 if(r.startOffset) {
                     el.append('\u200b');
@@ -1285,7 +1394,7 @@
                     p.normalize();
                 }
                 else{ // avoid node change on corners.
-                    el = r.startContainer.previousSibling || r.startContainer.parentNode;
+                    el = sc.childNodes[0] || sc.previousSibling || sc.parentNode;
                     rect = $(el).offset();
                 }
             }
@@ -1479,7 +1588,7 @@
         * Removes given list item from list and put its content in an appropriate container.
         * @param {jQuery Element} li the jQuery instance of list item.
         * @param {string} t new tag to move content to.
-        * @returns {jQuery Element} The newly created DOM object.
+        * @returns {jQuery Element} The newly created DOM Element.
         * */
         unList: function ($li) {
 
@@ -1520,13 +1629,21 @@
                     ($n.prev().is('ul') && $n.next().is('ul'))) {
                 var $prv = $n.prev(),
                     $nxt = $n.next(),
-                    $li = $prv.children().last();
+                    $li = $prv.children().last(),
+                    p = $li.text().length;
 
                 $prv.append($nxt.children());
                 $nxt.remove();
+
+                // move the content also if any.
+                if($n.text()){
+                    // remove the the last <br> if any.
+                    if($li.children().length === 1)$li.children('br').remove();
+                    $li.append($n.contents());
+                }
                 $n.remove();
 
-                this.O.caret.setPos($li, $li.text().length);
+                this.O.caret.setPos($li, p);
                 return !0;
             }
             return !1;
@@ -1851,7 +1968,7 @@
             }
 
             // also check if there is no space on top, its better to display modal at the bottom.
-            T = (T + h > eh && tp > 1)? tp: T + 22;
+            T = (T + h > eh && tp > 1)? tp: T + 22; // 22 is spacing from text
 
             $m.css({left: L, top: T});
         },
