@@ -56,7 +56,10 @@
 //                [{'font': []}],
 //                [{'align': []}],
 
-                ['clean']                                         // remove formatting button
+                ['clean'],                                         // remove formatting button
+
+                // plugins
+                ['equation']
             ]
         },
 
@@ -2275,8 +2278,6 @@
 
     }
 
-    // Editor.defaults = Editor.prototype.defaults
-
     /*
      * Binds editor to matched set of nodes.
      * @return {Object.<Editor> || Array.<Object.<Editor>>}
@@ -2291,6 +2292,6 @@
         return instance.length == 1 ? instance[0] : instance;
     }
 
-    //window.Editor = Editor;
+    window.SumoEditor = Editor;
 })(jQuery, window, document)
 
