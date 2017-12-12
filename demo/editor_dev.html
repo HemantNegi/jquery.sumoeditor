@@ -75,11 +75,20 @@
 
         <script src="jquery-1.10.2.min.js"></script>
         <script src="../src/jquery.sumoeditor.js"></script>
-        <script src="../src/plugins/equation.js"></script>
+
+        <link rel="stylesheet" href="../src/plugins/equation/katex.min.css">
+        <script src="../src/plugins/equation/katex.min.js"></script>
+        <script src="../src/plugins/equation/equation.js"></script>
 
         <script>
             var a = $('#editor').sumoeditor();
 
+/*
+katex.render("c = \\pm\\sqrt{a^2 + b^2}", element);
+var html = katex.renderToString("c = \\pm\\sqrt{a^2 + b^2}");
+
+.katex { font-size: 1.1em; }
+*/
         </script>
     </div>
 
