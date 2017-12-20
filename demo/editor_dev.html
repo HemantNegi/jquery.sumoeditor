@@ -7,68 +7,19 @@
     <!-- easy editor stylesheet -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="../src/easyeditor.css">
-    <style type="text/css">
+    <link rel="stylesheet" href="../src/plugins/maths/maths.css">
 
-        #editor, #editor blockquote {
-            white-space: pre-wrap;       /* css-3 */
-            white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-            white-space: -pre-wrap;      /* Opera 4-6 */
-            white-space: -o-pre-wrap;    /* Opera 7 */
-            word-wrap: break-word;       /* Internet Explorer 5.5+ */
-        }
-
-        .easyeditor-toolbar li button{
-          -webkit-touch-callout: none; /* iOS Safari */
-            -webkit-user-select: none; /* Safari */
-             -khtml-user-select: none; /* Konqueror HTML */
-               -moz-user-select: none; /* Firefox */
-                -ms-user-select: none; /* Internet Explorer/Edge */
-                    user-select: none; /* Non-prefixed version, currently
-                                          supported by Chrome and Opera */
-        }
-
-        #editor:focus{
-            border-color: blue;
-        }
-
-
-
-        #editor {
-            width: 100%;
-        }
-    </style>
 </head>
 <body>
 
     <div class="container">
         <h1>Sumo editor <span>Insert image url example</span></h1>
         <p class="p">Sample image url - <a href="http://placehold.it/500x300">http://placehold.it/500x300</a></p>
-<!--        <div class="sumoeditor name-attr"><div class="toolbar"><span class="grp"><button class="sico-bold"></button><button class="sico-italic"></button><button class="sico-underline"></button><button class="sico-strike"></button></span><span class="grp"><button class="sico-quote"></button><button class="sico-code"></button></span><span class="grp"></span><span class="grp"><button class="sico-ol"></button><button class="sico-ul"></button><button class="sico-indent"></button><button class="sico-unindent"></button><button class="sico-sub"></button><button class="sico-sup"></button><button class="sico-link"></button></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"></span><span class="grp"><button class="sico-clean"></button></span></div><div class="editor" contenteditable="true" tab-index="1" placeholder="Start writing here..."><p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. </p><ol><li>Lo<a>rem Ipsum has been the industr</a>y's<br>&nbsp;standard dummy text ever since the </li><li>1500s, when an unknown<br>&nbsp;printer took a galley of type</li><li> and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was</li></ol><p>popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p></div>
-        <div class="sumo-modal">
-            <form>
-                <p><label for="sumo_lnk_txt">Text</label><span><input id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>
-                <p><label for="sumo_lnk">Link</label><span><input id="sumo_lnk" placeholder="http://quesapp.com" type="text"/></span></p>
-                <p><span class="_lst">
-                    <label class="sumo-chbox"><input type="checkbox"/><span></span>New tab</label>
-                </span> <input type="submit" value="Apply"/></p>
-            </form>
-        </div>-->
-    <!--        <div class="sumomodal">
-            <div class="sumoback"></div>
-            <form>
-                <div class="sumocont">
-                    <a>&times;</a>
-                    <p><label for="sumo_lnk_txt">Text</label><span><input id="sumo_lnk_txt" placeholder="Display text" type="text"/></span></p>
-                    <p><label for="sumo_lnk">Link</label><span><input id="sumo_lnk" placeholder="http://quesapp.com" type="text"/></span></p>
-                    <p><label></label><span><input id="sumo_chk" type="checkbox"/><label for="sumo_chk">Open in new tab</label></span></p>
-                    <p><input type="checkbox"/><input type="submit" value="OK"/></p>
-                </div>
-            </form>
-        </div>
-        </div>-->
+
         <div>
         <!-- sumoeditor wil apply in this textarea -->
-        <textarea style="margin-top:50px;" id="editor" name="name-attr" placeholder="Type here ... "><p style="text-align: center;"><span style="font-size: 22px;">There is no way to peace. peace is the way!</span></p><p>There are some place in this universe that does this naturally in a way that no body does better than anyone. and there are several instances that can be prooved wrong after a certain amount of time.</p><p><br></p><p>This&nbsp; list can be expanded as below:</p><ol><li>some of the&nbsp;<strong>items can be deleted and&nbsp;</strong>some of them can never be recovered.<br>A line break without any new block tag</li><li>This is the second item in this list&nbsp;<a href="http://rewiremedia.com/about/company/people/neer">Visit here for more</a>&nbsp;details and they will be good.</li><li>After third item there are some awesome places.</li><li>Some maths is also possible eg. <em>(a + b)</em><sup><em>2</em></sup><em>&nbsp;= a</em><sup><em>2&nbsp;</em></sup><em>+ b</em><sup><em>2 </em></sup><em>+ 2ab</em></li></ol><blockquote>List ended and new paragraph is here, these are written as a block quote and we can create amazing content.</blockquote><p>The behavior can be described as a candid one!</p></textarea>
+        <textarea style="margin-top:50px;" id="editor" name="name-attr" placeholder="Type here ... "><p style="text-align: center;"><span style="font-size: 22px;">There is no way to peace. peace is the way!</span></p><p>There are some place in this universe that does this naturally in a way that no body does better than anyone. and there are several instances that can be prooved wrong after a certain amount of time.</p><p><br></p><p>This&nbsp; list can be expanded as below:</p><ol><li>some of the&nbsp;<strong>items can be deleted and&nbsp;</strong>some of them can never be recovered.<br>A line break without any new block tag</li><li>This is the second item in this list&nbsp;<a href="http://rewiremedia.com/about/company/people/neer">Visit here for more</a>&nbsp;details and they will be good.</li><li>After third item there are some awesome places.</li><li>Some maths is also possible eg. <em>(a + b)</em><sup><em>2</em></sup><em>&nbsp;= a</em><sup><em>2&nbsp;</em></sup><em>+ b</em><sup><em>2 </em></sup><em>+ 2ab</em></li></ol><blockquote>List ended and new paragraph is here, these are written as a block quote and we can create amazing content.</blockquote><p>Hello world <span class="math"><span class="mint"><span class="mul">c</span><span class="mints">∫</span><span class="mll">x=0</span></span><span class="mcnt">&#8203</span></span>
+            </p><p>The behavior can be described as a candid one!</p></textarea>
         <!--<textarea style="margin-top:50px;" id="editor" name="name-attr" placeholder="Type here ... ">hello there <a href="this is a hyperlink">Hello there.</a></textarea>-->
         </div>
         <div class="markup"></div>
@@ -91,6 +42,9 @@ var html = katex.renderToString("c = \\pm\\sqrt{a^2 + b^2}");
 */
         </script>
     </div>
+
+
+
 
 </body>
 </html>
