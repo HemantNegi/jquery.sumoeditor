@@ -1,37 +1,76 @@
 
-        .math{
-            font: 16px/1.4 "proxima-nova", "Helvetica Neue", Arial, Helvetica, sans-serif;
-            font-size: 1.1em;
-            display: inline-block;
-            border: 1px solid #cecece;
-        }
-        .math .mint .mints{padding: 0.5em 0px;\: 1px solid red;display: inline-block;font-family: KaTeX_Size2;}
+.math {
+    font: 16px/1.4 "proxima-nova", "Helvetica Neue", Arial, Helvetica, sans-serif;
+    font-size: 1.2em;
+    display: inline-block;
+    border: 1px solid #cecece;
+    font-family: KaTeX_Main;
+    vertical-align: middle //dont vertical align;
+    margin: 0 5px;
+    line-height: 1.2em;
+}
 
-        .math .mint{
-        position: relative;
-        display: inline-block;
-        vertical-align: middle;
-        }
+.math .mcnt {
+}
 
-        .math .mint .mul{
-         font-size: 0.7em;
-         display: block;
-         position: relative;
-         top: 0.5em;
-         line-height: 0.7em;
-         padding-left: 1.7em;
-        }
-        .math .mint .mll{
-            font-size: 0.7em;
-            display: block;
-            position: relative;
-            bottom: 0.5em;
-            line-height: 0.7em;
-            padding-left: 1em;
-        }
-        .math .mcnt{
-        }
+/*this can be the common part*/
+.math .vlist-t {
+    display: inline-table;
+    table-layout: fixed;
+}
+.math .vlist-r {
+    text-align: center;
+    display: table-row;
+}
+.math .vlist {
+    display: table-cell;
+    vertical-align: bottom;
+    position: relative;
+}
+/*common part over*/
 
-        .mycustomClass{
+.math .mint .mints {
+    padding: 0.5em 0px;
+    display: inline-block;
+    font-family: KaTeX_Size2;
+}
 
-        }
+.math .mint {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.math .mint .mul {
+    font-size: 0.7em;
+    display: block;
+    position: relative;
+    top: 0.5em;
+    line-height: 0.7em;
+    padding-left: 1.7em;
+    margin-top: -0.5em;
+}
+
+.math .mint .mll {
+    font-size: 0.7em;
+    display: block;
+    position: relative;
+    bottom: 0.5em;
+    line-height: 0.7em;
+    padding-left: 1em;
+    margin-bottom: -0.5em;
+}
+
+
+.math .mfrac{
+    font-size: 0.9em;
+}
+.math .mfrac .vlist-r:first-child .vlist,
+.math .mfrac--.mfrac.vlist-r:first-child .vlist{
+    border-bottom: 1px solid currentColor;
+}
+.math .mfrac .mfrac{
+    font-size: 0.7em;
+    line-height: 1em;
+}
+
