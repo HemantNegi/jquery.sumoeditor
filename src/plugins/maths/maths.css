@@ -8,15 +8,24 @@
     vertical-align: middle //dont vertical align;
     margin: 0 5px;
     line-height: 1.2em;
+    white-space: nowrap;
+    text-indent: 0;
+    text-rendering: auto;
 }
 
 .math .mcnt {
 }
 
 /*this can be the common part*/
+
+.math .bbtm{
+    border-bottom: 1px solid currentColor;
+}
+
 .math .vlist-t {
     display: inline-table;
     table-layout: fixed;
+    vertical-align: 0.39em;
 }
 .math .vlist-r {
     text-align: center;
@@ -26,6 +35,10 @@
     display: table-cell;
     vertical-align: bottom;
     position: relative;
+    ]: em
+    padding-bottom:;
+    padding-bottom: 1px;
+    padding-top: 1px;
 }
 /*common part over*/
 
@@ -64,13 +77,18 @@
 
 .math .mfrac{
     font-size: 0.9em;
+    /* border: 1px solid red; */
+    margin-left: 2px;
 }
-.math .mfrac .vlist-r:first-child .vlist,
-.math .mfrac--.mfrac.vlist-r:first-child .vlist{
+/*.math .mfrac .vlist-r:first-child .vlist, .math .mfrac .mfrac.vlist-r:first-child .vlist{
     border-bottom: 1px solid currentColor;
-}
+}*/
 .math .mfrac .mfrac{
     font-size: 0.7em;
-    line-height: 1em;
+    line-height: 1.1em;
+}
+.math .mfrac .mfrac .mfrac .mfrac{
+    font-size: inherit;
+    line-height: 1.1em;
 }
 
