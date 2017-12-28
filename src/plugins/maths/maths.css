@@ -18,6 +18,17 @@
 }
 
 /*this can be the common part*/
+.math svg {
+    display: block;
+    width: 100%;
+    position: absolute;
+    height: -160px;
+    stroke-width: 1px;
+}
+
+.math svg path {
+    fill: currentColor;
+}
 
 .math .bbtm{
     border-bottom: 1px solid currentColor;
@@ -79,12 +90,9 @@
 
 .math .mfrac{
     font-size: 0.9em;
-    /* border: 1px solid red; */
     margin-left: 2px;
 }
-/*.math .mfrac .vlist-r:first-child .vlist, .math .mfrac .mfrac.vlist-r:first-child .vlist{
-    border-bottom: 1px solid currentColor;
-}*/
+
 .math .mfrac .mfrac{
     font-size: 0.7em;
     line-height: 1.1em;
@@ -94,3 +102,8 @@
     line-height: 1.1em;
 }
 
+.math .msqrt{
+    position: relative;
+}
+.math .msqrt .sqrt{width: 100%;display: inline-block;position: absolute;min-width: 8.85em;height: 242px;}
+.math .msqrt .sqrtb{/* display: block; *//* position: relative; *//* top: -5px; *//* left: 13px; */}
