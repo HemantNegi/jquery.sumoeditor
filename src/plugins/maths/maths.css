@@ -105,10 +105,15 @@
 .math .msqrt .sqrto{
     font-size: 0.5em;
     position: relative;
-    margin-left: -7px;
+    margin-left: -0.9em;
     top: -0.9em;
     left: 0.9em;
 }
 .math .msqrt .root{position: relative;}
 .math .msqrt .root .hide-tail{display: inline-block;position: absolute;min-width: 1em;overflow: hidden;height: 284%;width: 100%;}
 .math .msqrt .sqrtb{padding-left: 0.86em;position: relative;}
+
+
+.math .msupsub{}
+.math .msupsub .sup{font-size:0.7em;}
+.math .msupsub .sub{font-size:0.7em;}
