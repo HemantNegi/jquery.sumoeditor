@@ -336,7 +336,8 @@
 /* Content styling */
 .editor p {
     margin-bottom: 10px;
-    font-size: 20px;
+    /* font-size: 20px; */
+    /* color: #333; */
 }
 .editor blockquote {
     border-left: 4px solid #ccc;
