@@ -59,8 +59,8 @@
                 ['clean'],                                         // remove formatting button
 
                 // plugins
-                ['equation']
-            ]
+                ['maths']
+            ],
         },
 
         /*
@@ -73,6 +73,9 @@
 
         /* A list of currently highlighted buttons on the toolbar.*/
         HIGH_BUTTONS: [],
+
+        /* plugins will be inside this object. */
+        plugins: {},
 
         /*
         * The default tag that will be used to create paragraphs (Not tested yet).
@@ -1051,7 +1054,6 @@
             $e.toggleClass('blank', !x);
             return txt;
         },
-
     }
 
     /*
@@ -2276,6 +2278,34 @@
             }
         },
 
+        // plugins (TODO: find a better way to handle plugins.)
+        maths: function() {
+            var O = this,
+                def = {
+                    ico: 'maths',
+                    loaded: 0,              // indicates if plugin is loaded.
+                    onclick: function() {
+                        if (def.loaded){
+                            O.plugins.math.active();
+                        } else{
+                            var url = $("script[src*='jquery.sumoeditor']").first().attr('src').split('/');
+                            url[url.length-1] = 'plugins/maths/maths.js';
+                            url = url.join('/');
+
+                            $.ajax({
+                                dataType: "script",
+                                cache: true,
+                                url: url,
+                                success: function(a,b,c) {
+                                    def.loaded = 1;
+                                    O.plugins.math.init(O);
+                                }
+                            })
+                        }
+                    }
+                }
+            return def;
+        },
     }
 
     /*
