@@ -304,6 +304,7 @@
             var O = this;
 
             // listen to dom changes inside editor.
+            // TODO: its really bad to use a domObserver.
             O.utils.domObserver(O.editor, function () {
                 console.log('dom changed');
 
@@ -373,7 +374,9 @@
                 // close any existing open modals if any.
                 O.utils.modal();
 
-                O.highlighter();
+                // current element on which caret is placed.
+                var curE = O.selection.getRange().end;
+                O.highlighter(curE);
             });
 
 /*            // keypress event is triggered only when some content changes (not for special keys).
@@ -578,9 +581,8 @@
         * anytime to set the states of buttons on toolbar.
         * Triggers a callback high() with element that button corresponds to.
         * */
-        highlighter: function() {
+        highlighter: function(curE) {
             var O = this,
-                rng = O.selection.getRange(),
                 /*
                 * highlight the button corresponding to given key.
                 * @param {string} k the tagName/cssProperty.
@@ -603,7 +605,7 @@
                 if(def.setMnu)def.setMnu(1);
             });
 
-            $(rng.end).parents().each(function(_, e) {
+            $(curE).parents().each(function(_, e) {
                 // matching on base of applied css styles
                 var s = $(e).attr('style');
                 if(s){
@@ -613,7 +615,7 @@
                 }
 
                 highFn(e.tagName, e);
-            })
+            });
         },
 
         /*
@@ -1227,7 +1229,6 @@
         * @returns Object.<rng> a custom range object.
         * */
         getRange: function(){
-
             var sel = this.obj(), rng, r;
             if (sel.rangeCount) {
                 r = sel.getRangeAt(0).cloneRange(),
@@ -2286,17 +2287,17 @@
                     loaded: 0,              // indicates if plugin is loaded.
                     onclick: function() {
                         if (def.loaded){
-                            O.plugins.math.active();
+                            O.plugins.math.toggle();
                         } else{
-                            var url = $("script[src*='jquery.sumoeditor']").first().attr('src').split('/');
+                            var url = $('script[src*="jquery.sumoeditor"]').first().attr('src').split('/');
                             url[url.length-1] = 'plugins/maths/maths.js';
                             url = url.join('/');
 
                             $.ajax({
-                                dataType: "script",
+                                dataType: 'script',
                                 cache: true,
                                 url: url,
-                                success: function(a,b,c) {
+                                success: function() {
                                     def.loaded = 1;
                                     O.plugins.math.init(O);
                                 }
