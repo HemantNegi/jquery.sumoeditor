@@ -374,8 +374,10 @@
                 // close any existing open modals if any.
                 O.utils.modal();
 
-                // current element on which caret is placed.
+                // curE is current element on which caret is placed.
                 var curE = O.selection.getRange().end;
+                // trigger event.
+                O.$editor.trigger('caretMoved', [curE]);
                 O.highlighter(curE);
             });
 
@@ -2006,16 +2008,37 @@
         css: function ($e, k, v) {
             $e.css(k, v);
             !$e.attr('style')?$e.removeAttr('style'):0;
-        }
-/*        hasStyle: function ($e, key, val) {
-            var s = $e.attr('style');
-            if(s){
+        },
 
+        /**
+         * @param {String} name - The event's name
+         * @param {Object} [options] - Options to pass to the event constructor
+         * @returns Custom event
+         */
+  /*      customEvent: function (name, opt) {
+            var event;
+            if (typeof window.CustomEvent === 'function') {
+                event = new CustomEvent(name, opt);
+            } else {
+                event = document.createEvent('CustomEvent');
+                event.initCustomEvent(
+                    name,
+                    opt.bubbles,
+                    opt.cancellable,
+                    opt.detail
+                );
             }
-            else{
-                return !1;
-            }
-        }*/
+            return event;
+        },*/
+        /*        hasStyle: function ($e, key, val) {
+         var s = $e.attr('style');
+         if(s){
+
+         }
+         else{
+         return !1;
+         }
+         }*/
     };
 
     /*

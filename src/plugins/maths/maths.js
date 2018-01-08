@@ -46,13 +46,12 @@
         bindEvents: function () {
             var M = this;
 
-            // toggle the toolbar on content type.
-            M.O.$editor.on('click keydown', function (e) {
+            M.O.$editor.on('caretMoved', function (e, curE) {
                 //if(!M.active) return;
 
                 var f = 0;
-                console.log(e.target)
-                $(e.target).parentsUntil(M.O.$editor).each(function(i, x){
+                console.log(curE)
+                $(curE).parentsUntil(M.O.$editor).each(function(i, x){
                     if($(x).hasClass('math')) {
                         f = 1;
                         return;
@@ -62,6 +61,9 @@
                 M.active = !f
                 M.toggle();
             });
+
+            // toggle the toolbar on content type.
+            // M.O.$editor.on('click keydown', );
             
             
         }
