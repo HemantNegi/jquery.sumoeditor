@@ -46,9 +46,8 @@
         bindEvents: function () {
             var M = this;
 
+            // TODO: see for alternatives of this.d
             M.O.$editor.on('caretMoved', function (e, curE) {
-                //if(!M.active) return;
-
                 var f = 0;
                 console.log(curE)
                 $(curE).parentsUntil(M.O.$editor).each(function(i, x){
@@ -61,10 +60,6 @@
                 M.active = !f
                 M.toggle();
             });
-
-            // toggle the toolbar on content type.
-            // M.O.$editor.on('click keydown', );
-            
             
         }
     }
