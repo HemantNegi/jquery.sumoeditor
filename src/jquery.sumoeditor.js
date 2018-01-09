@@ -469,7 +469,6 @@
                 }
 
             }
-            console.log('== backspace pressed == pos: ', pos, '  Node: ', $n.prop('tagName'));
             return pd;
         },
 

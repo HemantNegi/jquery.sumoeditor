@@ -3,7 +3,7 @@
     font: 16px/1.4 "proxima-nova", "Helvetica Neue", Arial, Helvetica, sans-serif;
     font-size: 1.2em;
     display: inline-block;
-    border: 1px solid #cecece;
+    /* border: 1px solid #cecece; */
     font-family: KaTeX_Math;
     vertical-align: middle //dont vertical align;
     margin: 0 5px;
